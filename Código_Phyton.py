@@ -509,3 +509,278 @@ def resumen_por_cliente(dnis, nombres, montos, n):
     for i in range(1, clientes + 1):
         print(f" {dnis_cliente[i]} | {nombres_cliente[i]} | {cantidades[i]} | S/ {totales[i]}")
     print(f" Clientes distintos: {clientes}")
+    # =============================================================================
+# ALGORITMO PRINCIPAL
+# =============================================================================
+
+def main():
+    codigos = [""] * 201
+    fechas = [""] * 201
+    dnis = [""] * 201
+    nombres = [""] * 201
+    telefonos = [""] * 201
+    proyectos = [""] * 201
+    lotes = [""] * 201
+    tipos = [""] * 201
+    estados = [""] * 201
+    responsables = [""] * 201
+    montos = [0.0] * 201
+
+    cat_proyectos = [""] * 7
+    cat_estados = [""] * 5
+    cat_tipos = [""] * 6
+
+    orden = [0] * 201
+    encontrados = [0] * 201
+    claves = [""] * 201
+
+    cat_proyectos[1] = "HUANCHACO"
+    cat_proyectos[2] = "MORELIA"
+    cat_proyectos[3] = "VERDE MAR"
+    cat_proyectos[4] = "CALIZA"
+    cat_proyectos[5] = "NURA"
+    cat_proyectos[6] = "OTRO"
+
+    cat_estados[1] = "RECIBIDO"
+    cat_estados[2] = "EN REVISION"
+    cat_estados[3] = "OBSERVADO"
+    cat_estados[4] = "ATENDIDO"
+
+    cat_tipos[1] = "CONTRATO DE SEPARACION"
+    cat_tipos[2] = "MINUTA DE COMPRA VENTA"
+    cat_tipos[3] = "VOUCHER DE PAGO"
+    cat_tipos[4] = "COPIA DE DNI"
+    cat_tipos[5] = "SOLICITUD DE DESISTIMIENTO"
+
+    n = 0
+    salir = False
+
+    while not salir:
+        print("")
+        print(" ==========================================================")
+        print("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO")
+        print(" ==========================================================")
+        print("    1) Registrar un expediente nuevo")
+        print("    2) Listar todos los expedientes")
+        print("    3) Buscar expediente (nombre, DNI, lote o codigo)")
+        print("    4) Buscar por codigo exacto  [busqueda binaria]")
+        print("    5) Ordenar expedientes")
+        print("    6) Cambiar el estado de un expediente")
+        print("    7) Reporte por proyecto y estado  [matriz]")
+        print("    8) Comparar los dos algoritmos de busqueda")
+        print("    9) Resumen por cliente  [arreglos paralelos]")
+        print("   10) Cargar datos de prueba")
+        print("    0) Salir")
+        texto = input(" Elija una opcion: ")
+
+        opcion_menu = 99
+        if solo_digitos(texto):
+            opcion_menu = int(texto)
+
+        if opcion_menu == 1:
+            cancelado = False
+            if n >= 200:
+                print(" [!] Se alcanzo el maximo de 200 expedientes.")
+                cancelado = True
+            if not cancelado:
+                print(" REGISTRO DE NUEVO EXPEDIENTE   (escriba X para cancelar)")
+                while True:
+                    dni = input(" DNI del cliente (8 digitos): ")
+                    cancelado = dni.upper() == "X"
+                    valido = cancelado
+                    if not cancelado:
+                        valido, mensaje = validar_dni(dni)
+                        if not valido:
+                            print(f"   [!] {mensaje}")
+                    if valido:
+                        break
+            if not cancelado:
+                while True:
+                    nombre = input(" Nombres y apellidos: ")
+                    cancelado = nombre.upper() == "X"
+                    valido = cancelado
+                    if not cancelado:
+                        valido, mensaje = validar_nombre(nombre)
+                        if not valido:
+                            print(f"   [!] {mensaje}")
+                    if valido:
+                        break
+            if not cancelado:
+                while True:
+                    tel = input(" Celular (9 digitos): ")
+                    cancelado = tel.upper() == "X"
+                    valido = cancelado
+                    if not cancelado:
+                        valido, mensaje = validar_telefono(tel)
+                        if not valido:
+                            print(f"   [!] {mensaje}")
+                    if valido:
+                        break
+            if not cancelado:
+                p = elegir_opcion("Proyecto:", cat_proyectos, 6)
+                cancelado = p == 0
+            if not cancelado:
+                lote = input(" Lote (ejemplo: MZ A - LT 12): ")
+                lote = limpiar_separador(lote.upper())
+                if len(lote) == 0:
+                    lote = "SIN ASIGNAR"
+                t = elegir_opcion("Tipo de documento presentado:", cat_tipos, 5)
+                cancelado = t == 0
+            if not cancelado:
+                posicion = posicion_duplicado(dnis, lotes, tipos, estados, n, dni, lote, cat_tipos[t])
+                if posicion > 0:
+                    print(" [!] ATENCION: ya existe un expediente abierto con esos datos:")
+                    print(f"     {codigos[posicion]} | {nombres[posicion]} | {estados[posicion]}")
+                    resp = input(" Desea registrarlo igual? (S/N): ")
+                    cancelado = resp.upper() != "S"
+            if not cancelado:
+                while True:
+                    monto = input(" Monto de la operacion en soles: ")
+                    cancelado = monto.upper() == "X"
+                    valido = cancelado
+                    if not cancelado:
+                        valido, mensaje = validar_monto(monto)
+                        if not valido:
+                            print(f"   [!] {mensaje}")
+                    if valido:
+                        break
+            if not cancelado:
+                while True:
+                    fecha = input(" Fecha dd/mm/aaaa [Enter = hoy]: ")
+                    if len(fecha) == 0:
+                        fecha = fecha_de_hoy()
+                    cancelado = fecha.upper() == "X"
+                    valido = cancelado
+                    if not cancelado:
+                        valido, mensaje = validar_fecha(fecha)
+                        if not valido:
+                            print(f"   [!] {mensaje}")
+                    if valido:
+                        break
+            if cancelado:
+                print(" Registro cancelado.")
+            else:
+                responsable = input(" Responsable que recibe [Enter = MESA DE PARTES]: ")
+                responsable = limpiar_separador(responsable.upper())
+                if len(responsable) == 0:
+                    responsable = "MESA DE PARTES"
+                codigo = generar_codigo(codigos, n)
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, codigo, fecha, dni, nombre, tel, cat_proyectos[p], lote, cat_tipos[t], float(limpiar_monto(monto)), "RECIBIDO", responsable)
+                print(f" [OK] Expediente registrado con el codigo: {codigo}")
+
+        elif opcion_menu == 2:
+            if hay_expedientes(n):
+                todas_las_posiciones(orden, n)
+                mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
+
+        elif opcion_menu == 3:
+            texto = input(" Escriba nombre, DNI, lote, proyecto o codigo: ")
+            if len(texto) == 0:
+                print(" [!] No escribio nada que buscar.")
+            else:
+                total, comparaciones = busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, texto, encontrados)
+                if total == 0:
+                    print(f" No se encontro ningun expediente con: {texto}")
+                else:
+                    mostrar_tabla(encontrados, total, codigos, fechas, dnis, nombres, proyectos, montos, estados)
+                    if total == 1:
+                        mostrar_ficha(encontrados[1], codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables)
+                print(f" [Metrica] Busqueda lineal: {comparaciones} comparaciones.")
+
+        elif opcion_menu == 4:
+            if hay_expedientes(n):
+                codigo = input(" Codigo exacto (ejemplo EXP-2026-0001): ")
+                armar_claves(claves, n, 1, codigos, fechas, nombres, proyectos, montos)
+                comp_orden, movimientos = ordenar_burbuja(orden, claves, n, True)
+                posicion, comp_binaria = busqueda_binaria(codigos, orden, n, codigo)
+                if posicion == 0:
+                    print(f" No existe el expediente {codigo.upper()}.")
+                else:
+                    mostrar_ficha(posicion, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables)
+                print(f" [Metrica] Ordenamiento previo: {comp_orden} comparaciones.")
+                print(f" [Metrica] Busqueda binaria   : {comp_binaria} comparaciones.")
+
+        elif opcion_menu == 5:
+            if hay_expedientes(n):
+                print(" Ordenar por: 1) Codigo  2) Fecha  3) Cliente  4) Monto  5) Proyecto")
+                texto = input(" Numero: ")
+                criterio = 0
+                if solo_digitos(texto):
+                    criterio = int(texto)
+                if criterio < 1 or criterio > 5:
+                    print(" [!] Opcion no valida.")
+                else:
+                    texto = input(" Ascendente (A) o descendente (D)? [A]: ")
+                    ascendente = texto.upper() != "D"
+                    texto = input(" Algoritmo: 1) Burbuja  2) Insercion [1]: ")
+                    armar_claves(claves, n, criterio, codigos, fechas, nombres, proyectos, montos)
+                    if texto == "2":
+                        comparaciones, movimientos = ordenar_insercion(orden, claves, n, ascendente)
+                        mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
+                        print(f" [Metrica] INSERCION: {comparaciones} comparaciones y {movimientos} desplazamientos.")
+                    else:
+                        comparaciones, movimientos = ordenar_burbuja(orden, claves, n, ascendente)
+                        mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
+                        print(f" [Metrica] BURBUJA: {comparaciones} comparaciones y {movimientos} intercambios.")
+
+        elif opcion_menu == 6:
+            if hay_expedientes(n):
+                codigo = input(" Codigo del expediente: ")
+                posicion = posicion_por_codigo(codigos, n, codigo)
+                if posicion == 0:
+                    print(f" [!] No existe el expediente {codigo.upper()}.")
+                else:
+                    print(f" Estado actual: {estados[posicion]}")
+                    i = elegir_opcion("Nuevo estado:", cat_estados, 4)
+                    if i > 0:
+                        if cat_estados[i] == estados[posicion]:
+                            print(f" [!] El expediente ya esta en estado {cat_estados[i]}.")
+                        else:
+                            estados[posicion] = cat_estados[i]
+                            print(f" [OK] El expediente {codigos[posicion]} ahora esta en estado: {cat_estados[i]}")
+
+        elif opcion_menu == 7:
+            if hay_expedientes(n):
+                reporte_proyecto_estado(proyectos, estados, n, cat_proyectos, cat_estados)
+                reporte_montos(montos, estados, n)
+
+        elif opcion_menu == 8:
+            if hay_expedientes(n):
+                codigo = input(" Codigo a buscar con ambos algoritmos: ")
+                _, comp_lineal = busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, codigo, encontrados)
+                armar_claves(claves, n, 1, codigos, fechas, nombres, proyectos, montos)
+                comp_orden, movimientos = ordenar_burbuja(orden, claves, n, True)
+                _, comp_binaria = busqueda_binaria(codigos, orden, n, codigo)
+                print("")
+                print(" COMPARACION DE ALTERNATIVAS ALGORITMICAS")
+                print(f" Expedientes en los arreglos : {n}")
+                print(f" A - Busqueda lineal : {comp_lineal} comparaciones (no requiere orden, admite busqueda parcial)")
+                print(f" B - Busqueda binaria: {comp_binaria} comparaciones (+ {comp_orden} para ordenar antes, solo codigo exacto)")
+                print(" CONCLUSION: binaria para el codigo exacto, lineal para nombre, DNI y lote.")
+
+        elif opcion_menu == 9:
+            if hay_expedientes(n):
+                resumen_por_cliente(dnis, nombres, montos, n)
+
+        elif opcion_menu == 10:
+            if n + 8 > 200:
+                print(" [!] No hay espacio para los datos de prueba.")
+            else:
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "18/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "CONTRATO DE SEPARACION", 13000, "ATENDIDO", "MESA DE PARTES")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "19/08/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500, "RECIBIDO", "MESA DE PARTES")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "20/08/2026", "09876543", "Ana Lucia Chavez", "998877665", "VERDE MAR", "MZ B - LT 21", "MINUTA DE COMPRA VENTA", 24000, "EN REVISION", "AREA LEGAL")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200, "ATENDIDO", "CAJA")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "22/08/2026", "60123456", "Jorge Miranda Silva", "955443322", "CALIZA", "MZ D - LT 08", "COPIA DE DNI", 500, "OBSERVADO", "MESA DE PARTES")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "25/08/2026", "31245678", "Rosa Guzman Polo", "976543210", "NURA", "MZ E - LT 15", "CONTRATO DE SEPARACION", 18500, "RECIBIDO", "MESA DE PARTES")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "26/08/2026", "80654321", "Pedro Alvarado Ruiz", "934567890", "MORELIA", "MZ C - LT 09", "MINUTA DE COMPRA VENTA", 31000, "EN REVISION", "AREA LEGAL")
+                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "27/08/2026", "27418596", "Lucia Flores Chavez", "921098765", "HUANCHACO", "MZ A - LT 30", "SOLICITUD DE DESISTIMIENTO", 13000, "OBSERVADO", "GERENCIA")
+                print(" [OK] Se agregaron 8 expedientes de prueba.")
+
+        elif opcion_menu == 0:
+            print(" Sistema cerrado. Hasta luego.")
+            salir = True
+        else:
+            print(" [!] Opcion no valida. Elija un numero del menu.")
+
+if __name__ == "__main__":
+    main()

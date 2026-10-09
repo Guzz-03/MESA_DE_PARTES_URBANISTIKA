@@ -229,3 +229,82 @@ def quitar_prefijo(texto, prefijo):
 
 def fecha_ordenable(fecha):
     return extraer_parte(fecha, "/", 3) + extraer_parte(fecha, "/", 2) + extraer_parte(fecha, "/", 1)
+# -----------------------------------------------------------------------------
+# OPERACIONES SOBRE LOS ARREGLOS PARALELOS
+# -----------------------------------------------------------------------------
+
+def agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, cod, fec, dni, nom, tel, pro, lot, tip, mon, est, res):
+    n += 1
+    codigos[n] = cod
+    fechas[n] = fec
+    dnis[n] = dni
+    nombres[n] = nom
+    telefonos[n] = tel
+    proyectos[n] = pro
+    lotes[n] = lot
+    tipos[n] = tip
+    montos[n] = mon
+    estados[n] = est
+    responsables[n] = res
+    return n
+
+def generar_codigo(codigos, n):
+    anio = str(int(fecha_actual_int() // 10000))
+    mayor = 0
+    for i in range(1, n + 1):
+        if extraer_parte(codigos[i], "-", 2) == anio and solo_digitos(extraer_parte(codigos[i], "-", 3)):
+            num = int(extraer_parte(codigos[i], "-", 3))
+            if num > mayor:
+                mayor = num
+    return "EXP-" + anio + "-" + rellenar_ceros(mayor + 1, 4)
+
+def posicion_por_codigo(codigos, n, codigo):
+    posicion = 0
+    for i in range(1, n + 1):
+        if posicion == 0 and codigos[i] == codigo.upper():
+            posicion = i
+    return posicion
+
+def posicion_duplicado(dnis, lotes, tipos, estados, n, dni, lote, tipo):
+    posicion = 0
+    for i in range(1, n + 1):
+        if posicion == 0 and dnis[i] == dni and lotes[i] == lote and tipos[i] == tipo and estados[i] != "ATENDIDO":
+            posicion = i
+    return posicion
+
+def mostrar_ficha(i, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables):
+    print("")
+    print(f" FICHA DEL EXPEDIENTE {codigos[i]}   (posicion {i})")
+    print(" -----------------------------------------------------------")
+    print(f" CODIGO      : {codigos[i]}  -> anio {extraer_parte(codigos[i], '-', 2)}, correlativo {extraer_parte(codigos[i], '-', 3)}")
+    print(f" FECHA       : {fechas[i]}  -> dia {extraer_parte(fechas[i], '/', 1)}, mes {extraer_parte(fechas[i], '/', 2)}, anio {extraer_parte(fechas[i], '/', 3)}")
+    print(f" DNI         : {dnis[i]}")
+    print(f" NOMBRE      : {nombres[i]}")
+    print(f" TELEFONO    : {telefonos[i]}")
+    print(f" PROYECTO    : {proyectos[i]}")
+    manzana = quitar_prefijo(recortar(extraer_parte(lotes[i], "-", 1)), "MZ")
+    numero_lote = quitar_prefijo(recortar(extraer_parte(lotes[i], "-", 2)), "LT")
+    if len(numero_lote) > 0:
+        print(f" LOTE        : {lotes[i]}  -> manzana {manzana}, lote {numero_lote}")
+    else:
+        print(f" LOTE        : {lotes[i]}")
+    print(f" TIPO DOC    : {tipos[i]}")
+    print(f" MONTO       : S/ {montos[i]}")
+    print(f" ESTADO      : {estados[i]}")
+    print(f" RESPONSABLE : {responsables[i]}")
+
+def mostrar_tabla(posiciones, total, codigos, fechas, dnis, nombres, proyectos, montos, estados):
+    if total == 0:
+        print(" (Sin expedientes para mostrar)")
+    else:
+        print("")
+        print(" CODIGO        | FECHA      | DNI      | CLIENTE | PROYECTO | MONTO | ESTADO")
+        print(" ---------------------------------------------------------------------------")
+        for k in range(1, total + 1):
+            i = posiciones[k]
+            print(f" {codigos[i]} | {fechas[i]} | {dnis[i]} | {nombres[i]} | {proyectos[i]} | S/ {montos[i]} | {estados[i]}")
+        print(f" Total de expedientes mostrados: {total}")
+
+def todas_las_posiciones(orden, n):
+    for i in range(1, n + 1):
+        orden[i] = i

@@ -414,3 +414,98 @@ def busqueda_binaria(codigos, orden, n, codigo):
             else:
                 fin_rango = medio - 1
     return posicion, comparaciones
+# -----------------------------------------------------------------------------
+# REPORTES
+# -----------------------------------------------------------------------------
+
+def reporte_proyecto_estado(proyectos, estados, n, cat_proyectos, cat_estados):
+    matriz = [[0 for _ in range(5)] for _ in range(7)]
+    for k in range(1, n + 1):
+        fila = 6
+        for i in range(1, 7):
+            if cat_proyectos[i] == proyectos[k]:
+                fila = i
+        for j in range(1, 5):
+            if cat_estados[j] == estados[k]:
+                matriz[fila][j] += 1
+    print("")
+    print(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO")
+    print(" PROYECTO | RECIBIDO | EN REVISION | OBSERVADO | ATENDIDO | TOTAL")
+    for i in range(1, 7):
+        suma_fila = 0
+        print(f" {cat_proyectos[i]}", end="")
+        for j in range(1, 5):
+            print(f" | {matriz[i][j]}", end="")
+            suma_fila += matriz[i][j]
+        print(f" | {suma_fila}")
+    print(f" TOTAL GENERAL: {n}")
+
+def reporte_montos(montos, estados, n):
+    total = 0.0
+    mayor = montos[1]
+    menor = montos[1]
+    pendientes = 0
+    for k in range(1, n + 1):
+        total += montos[k]
+        if montos[k] > mayor:
+            mayor = montos[k]
+        if montos[k] < menor:
+            menor = montos[k]
+        if estados[k] != "ATENDIDO":
+            pendientes += 1
+    print("")
+    print(f" Monto total registrado : S/ {total}")
+    print(f" Monto promedio         : S/ {round(total / n * 100) / 100}")
+    print(f" Operacion mas alta     : S/ {mayor}")
+    print(f" Operacion mas baja     : S/ {menor}")
+    print(f" Expedientes pendientes : {pendientes}")
+
+def resumen_por_cliente(dnis, nombres, montos, n):
+    dnis_cliente = [""] * 201
+    nombres_cliente = [""] * 201
+    cantidades = [0] * 201
+    totales = [0.0] * 201
+    clientes = 0
+
+    for k in range(1, n + 1):
+        posicion = 0
+        for i in range(1, clientes + 1):
+            if posicion == 0 and dnis_cliente[i] == dnis[k]:
+                posicion = i
+        if posicion == 0:
+            clientes += 1
+            dnis_cliente[clientes] = dnis[k]
+            nombres_cliente[clientes] = nombres[k]
+            cantidades[clientes] = 1
+            totales[clientes] = montos[k]
+        else:
+            cantidades[posicion] += 1
+            totales[posicion] += montos[k]
+
+    for i in range(2, clientes + 1):
+        dni_aux = dnis_cliente[i]
+        nombre_aux = nombres_cliente[i]
+        cantidad_aux = cantidades[i]
+        total_aux = totales[i]
+        j = i - 1
+        debe_correrse = True
+        while j >= 1 and debe_correrse:
+            if totales[j] < total_aux:
+                dnis_cliente[j + 1] = dnis_cliente[j]
+                nombres_cliente[j + 1] = nombres_cliente[j]
+                cantidades[j + 1] = cantidades[j]
+                totales[j + 1] = totales[j]
+                j -= 1
+            else:
+                debe_correrse = False
+        dnis_cliente[j + 1] = dni_aux
+        nombres_cliente[j + 1] = nombre_aux
+        cantidades[j + 1] = cantidad_aux
+        totales[j + 1] = total_aux
+
+    print("")
+    print(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)")
+    print(" DNI      | CLIENTE | EXPEDIENTES | TOTAL PAGADO")
+    for i in range(1, clientes + 1):
+        print(f" {dnis_cliente[i]} | {nombres_cliente[i]} | {cantidades[i]} | S/ {totales[i]}")
+    print(f" Clientes distintos: {clientes}")

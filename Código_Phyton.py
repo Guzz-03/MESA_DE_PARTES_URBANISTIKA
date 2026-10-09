@@ -308,3 +308,63 @@ def mostrar_tabla(posiciones, total, codigos, fechas, dnis, nombres, proyectos, 
 def todas_las_posiciones(orden, n):
     for i in range(1, n + 1):
         orden[i] = i
+# -----------------------------------------------------------------------------
+# ORDENAMIENTO
+# -----------------------------------------------------------------------------
+
+def armar_claves(claves, n, criterio, codigos, fechas, nombres, proyectos, montos):
+    for i in range(1, n + 1):
+        if criterio == 2:
+            claves[i] = fecha_ordenable(fechas[i])
+        elif criterio == 3:
+            claves[i] = nombres[i].upper()
+        elif criterio == 4:
+            claves[i] = rellenar_ceros(int(montos[i] * 100), 12)
+        elif criterio == 5:
+            claves[i] = proyectos[i]
+        else:
+            claves[i] = codigos[i]
+
+def ordenar_burbuja(orden, claves, n, ascendente):
+    todas_las_posiciones(orden, n)
+    comparaciones = 0
+    intercambios = 0
+    i = 1
+    hubo_intercambio = True
+    while i <= n - 1 and hubo_intercambio:
+        hubo_intercambio = False
+        for j in range(1, n - i + 1):
+            comparaciones += 1
+            if ascendente:
+                desordenado = claves[orden[j]] > claves[orden[j + 1]]
+            else:
+                desordenado = claves[orden[j]] < claves[orden[j + 1]]
+            if desordenado:
+                temporal = orden[j]
+                orden[j] = orden[j + 1]
+                orden[j + 1] = temporal
+                intercambios += 1
+                hubo_intercambio = True
+        i += 1
+    return comparaciones, intercambios
+
+def ordenar_insercion(orden, claves, n, ascendente):
+    todas_las_posiciones(orden, n)
+    comparaciones = 0
+    desplazamientos = 0
+    for i in range(2, n + 1):
+        actual = orden[i]
+        j = i - 1
+        debe_correrse = True
+        while j >= 1 and debe_correrse:
+            comparaciones += 1
+            if ascendente:
+                debe_correrse = claves[orden[j]] > claves[actual]
+            else:
+                debe_correrse = claves[orden[j]] < claves[actual]
+            if debe_correrse:
+                orden[j + 1] = orden[j]
+                desplazamientos += 1
+                j -= 1
+        orden[j + 1] = actual
+    return comparaciones, desplazamientos

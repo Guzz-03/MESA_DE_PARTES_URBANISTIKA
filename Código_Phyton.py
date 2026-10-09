@@ -368,3 +368,49 @@ def ordenar_insercion(orden, claves, n, ascendente):
                 j -= 1
         orden[j + 1] = actual
     return comparaciones, desplazamientos
+# -----------------------------------------------------------------------------
+# BUSQUEDA
+# -----------------------------------------------------------------------------
+
+def busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, buscado, encontrados):
+    total = 0
+    comparaciones = 0
+    for i in range(1, n + 1):
+        coincide = False
+        k = 1
+        while not coincide and k <= 5:
+            comparaciones += 1
+            if k == 1:
+                campo = codigos[i]
+            elif k == 2:
+                campo = dnis[i]
+            elif k == 3:
+                campo = nombres[i]
+            elif k == 4:
+                campo = lotes[i]
+            else:
+                campo = proyectos[i]
+            coincide = contiene_texto(campo, buscado)
+            k += 1
+        if coincide:
+            total += 1
+            encontrados[total] = i
+    return total, comparaciones
+
+def busqueda_binaria(codigos, orden, n, codigo):
+    codigo = codigo.upper()
+    posicion = 0
+    comparaciones = 0
+    ini = 1
+    fin_rango = n
+    while ini <= fin_rango and posicion == 0:
+        medio = int((ini + fin_rango) // 2)
+        comparaciones += 1
+        if codigos[orden[medio]] == codigo:
+            posicion = orden[medio]
+        else:
+            if codigos[orden[medio]] < codigo:
+                ini = medio + 1
+            else:
+                fin_rango = medio - 1
+    return posicion, comparaciones

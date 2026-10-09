@@ -160,3 +160,72 @@ def contiene_texto(texto, buscado):
                 ok = True
             inicio += 1
     return ok
+# -----------------------------------------------------------------------------
+# ENTRADA DE DATOS
+# -----------------------------------------------------------------------------
+
+def elegir_opcion(titulo, opciones, total):
+    elegida = 99
+    while True:
+        print("   ", titulo)
+        for i in range(1, total + 1):
+            print(f"     {i}) {opciones[i]}")
+        texto = input("   Numero (X = cancelar): ")
+        if texto.upper() == "X":
+            elegida = 0
+        else:
+            if solo_digitos(texto):
+                val = int(texto)
+                if 1 <= val <= total:
+                    elegida = val
+                else:
+                    print(f"   [!] La opcion debe estar entre 1 y {total}.")
+            else:
+                print("   [!] Ingrese solo el numero de la opcion.")
+        if elegida != 99:
+            break
+    return elegida
+
+def hay_expedientes(n):
+    hay = n > 0
+    if not hay:
+        print("")
+        print(" [!] Todavia no hay expedientes registrados.")
+    return hay
+
+# -----------------------------------------------------------------------------
+# DESCOMPONER CADENAS
+# -----------------------------------------------------------------------------
+
+def extraer_parte(texto, separador, numero_parte):
+    parte = ""
+    actual = 1
+    for c in texto:
+        if c == separador:
+            actual += 1
+        else:
+            if actual == numero_parte:
+                parte += c
+    return parte
+
+def recortar(texto):
+    ini = 1
+    fn = len(texto)
+    while ini <= fn and texto[ini - 1] == " ":
+        ini += 1
+    while fn >= ini and texto[fn - 1] == " ":
+        fn -= 1
+    limpio = ""
+    if ini <= fn:
+        limpio = texto[ini - 1:fn]
+    return limpio
+
+def quitar_prefijo(texto, prefijo):
+    resto = texto
+    if len(texto) >= len(prefijo):
+        if texto[0:len(prefijo)] == prefijo:
+            resto = recortar(texto[len(prefijo):])
+    return resto
+
+def fecha_ordenable(fecha):
+    return extraer_parte(fecha, "/", 3) + extraer_parte(fecha, "/", 2) + extraer_parte(fecha, "/", 1)

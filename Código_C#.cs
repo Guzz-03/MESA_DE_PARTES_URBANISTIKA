@@ -420,3 +420,121 @@ static string FechaOrdenable(string fecha)
     return ExtraerParte(fecha, '/', 3) + ExtraerParte(fecha, '/', 2) + ExtraerParte(fecha, '/', 1);
 }
 
+// -----------------------------------------------------------------------------
+// OPERACIONES SOBRE LOS ARREGLOS PARALELOS
+// -----------------------------------------------------------------------------
+
+static void AgregarExpediente(ref int n, string[] codigos, string[] fechas, string[] dnis, string[] nombres, string[] telefonos, string[] proyectos, string[] lotes, string[] tipos, double[] montos, string[] estados, string[] responsables, string cod, string fec, string dni, string nom, string tel, string pro, string lot, string tip, double mon, string est, string res)
+{
+    n++;
+    codigos[n] = cod;
+    fechas[n] = fec;
+    dnis[n] = dni;
+    nombres[n] = nom;
+    telefonos[n] = tel;
+    proyectos[n] = pro;
+    lotes[n] = lot;
+    tipos[n] = tip;
+    montos[n] = mon;
+    estados[n] = est;
+    responsables[n] = res;
+}
+
+static string GenerarCodigo(string[] codigos, int n)
+{
+    string anio = ((int)(FechaActualInt() / 10000)).ToString();
+    int mayor = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        if (ExtraerParte(codigos[i], '-', 2) == anio && SoloDigitos(ExtraerParte(codigos[i], '-', 3)))
+        {
+            int val = int.Parse(ExtraerParte(codigos[i], '-', 3));
+            if (val > mayor)
+            {
+                mayor = val;
+            }
+        }
+    }
+    return "EXP-" + anio + "-" + RellenarCeros(mayor + 1, 4);
+}
+
+static int PosicionPorCodigo(string[] codigos, int n, string codigo)
+{
+    int posicion = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        if (posicion == 0 && codigos[i] == codigo.ToUpper())
+        {
+            posicion = i;
+        }
+    }
+    return posicion;
+}
+
+static int PosicionDuplicado(string[] dnis, string[] lotes, string[] tipos, string[] estados, int n, string dni, string lote, string tipo)
+{
+    int posicion = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        if (posicion == 0 && dnis[i] == dni && lotes[i] == lote && tipos[i] == tipo && estados[i] != "ATENDIDO")
+        {
+            posicion = i;
+        }
+    }
+    return posicion;
+}
+
+static void MostrarFicha(int i, string[] codigos, string[] fechas, string[] dnis, string[] nombres, string[] telefonos, string[] proyectos, string[] lotes, string[] tipos, double[] montos, string[] estados, string[] responsables)
+{
+    Console.WriteLine();
+    Console.WriteLine(" FICHA DEL EXPEDIENTE " + codigos[i] + "   (posicion " + i + ")");
+    Console.WriteLine(" -----------------------------------------------------------");
+    Console.WriteLine(" CODIGO      : " + codigos[i] + "  -> anio " + ExtraerParte(codigos[i], '-', 2) + ", correlativo " + ExtraerParte(codigos[i], '-', 3));
+    Console.WriteLine(" FECHA       : " + fechas[i] + "  -> dia " + ExtraerParte(fechas[i], '/', 1) + ", mes " + ExtraerParte(fechas[i], '/', 2) + ", anio " + ExtraerParte(fechas[i], '/', 3));
+    Console.WriteLine(" DNI         : " + dnis[i]);
+    Console.WriteLine(" NOMBRE      : " + nombres[i]);
+    Console.WriteLine(" TELEFONO    : " + telefonos[i]);
+    Console.WriteLine(" PROYECTO    : " + proyectos[i]);
+    string manzana = QuitarPrefijo(Recortar(ExtraerParte(lotes[i], '-', 1)), "MZ");
+    string numeroLote = QuitarPrefijo(Recortar(ExtraerParte(lotes[i], '-', 2)), "LT");
+    if (numeroLote.Length > 0)
+    {
+        Console.WriteLine(" LOTE        : " + lotes[i] + "  -> manzana " + manzana + ", lote " + numeroLote);
+    }
+    else
+    {
+        Console.WriteLine(" LOTE        : " + lotes[i]);
+    }
+    Console.WriteLine(" TIPO DOC    : " + tipos[i]);
+    Console.WriteLine(" MONTO       : S/ " + montos[i]);
+    Console.WriteLine(" ESTADO      : " + estados[i]);
+    Console.WriteLine(" RESPONSABLE : " + responsables[i]);
+}
+
+static void MostrarTabla(int[] posiciones, int total, string[] codigos, string[] fechas, string[] dnis, string[] nombres, string[] proyectos, double[] montos, string[] estados)
+{
+    if (total == 0)
+    {
+        Console.WriteLine(" (Sin expedientes para mostrar)");
+    }
+    else
+    {
+        Console.WriteLine();
+        Console.WriteLine(" CODIGO        | FECHA      | DNI      | CLIENTE | PROYECTO | MONTO | ESTADO");
+        Console.WriteLine(" ---------------------------------------------------------------------------");
+        for (int k = 1; k <= total; k++)
+        {
+            int i = posiciones[k];
+            Console.WriteLine(" " + codigos[i] + " | " + fechas[i] + " | " + dnis[i] + " | " + nombres[i] + " | " + proyectos[i] + " | S/ " + montos[i] + " | " + estados[i]);
+        }
+        Console.WriteLine(" Total de expedientes mostrados: " + total);
+    }
+}
+
+static void TodasLasPosiciones(int[] orden, int n)
+{
+    for (int i = 1; i <= n; i++)
+    {
+        orden[i] = i;
+    }
+}

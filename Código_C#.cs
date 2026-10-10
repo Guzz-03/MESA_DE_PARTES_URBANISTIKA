@@ -699,3 +699,139 @@ static int BusquedaBinaria(string[] codigos, int[] orden, int n, string codigo, 
     }
     return posicion;
 }
+
+// -----------------------------------------------------------------------------
+// REPORTES
+// -----------------------------------------------------------------------------
+
+static void ReporteProyectoEstado(string[] proyectos, string[] estados, int n, string[] catProyectos, string[] catEstados)
+{
+    int[,] matriz = new int[7, 5];
+    for (int k = 1; k <= n; k++)
+    {
+        int fila = 6;
+        for (int i = 1; i <= 6; i++)
+        {
+            if (catProyectos[i] == proyectos[k])
+            {
+                fila = i;
+            }
+        }
+        for (int j = 1; j <= 4; j++)
+        {
+            if (catEstados[j] == estados[k])
+            {
+                matriz[fila, j]++;
+            }
+        }
+    }
+    Console.WriteLine();
+    Console.WriteLine(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO");
+    Console.WriteLine(" PROYECTO | RECIBIDO | EN REVISION | OBSERVADO | ATENDIDO | TOTAL");
+    for (int i = 1; i <= 6; i++)
+    {
+        int sumaFila = 0;
+        Console.Write(" " + catProyectos[i]);
+        for (int j = 1; j <= 4; j++)
+        {
+            Console.Write(" | " + matriz[i, j]);
+            sumaFila += matriz[i, j];
+        }
+        Console.WriteLine(" | " + sumaFila);
+    }
+    Console.WriteLine(" TOTAL GENERAL: " + n);
+}
+
+static void ReporteMontos(double[] montos, string[] estados, int n)
+{
+    double total = 0;
+    double mayor = montos[1];
+    double menor = montos[1];
+    int pendientes = 0;
+    for (int k = 1; k <= n; k++)
+    {
+        total += montos[k];
+        if (montos[k] > mayor) mayor = montos[k];
+        if (montos[k] < menor) menor = montos[k];
+        if (estados[k] != "ATENDIDO") pendientes++;
+    }
+    Console.WriteLine();
+    Console.WriteLine(" Monto total registrado : S/ " + total);
+    Console.WriteLine(" Monto promedio         : S/ " + (Math.Round((total / n) * 100.0) / 100.0));
+    Console.WriteLine(" Operacion mas alta     : S/ " + mayor);
+    Console.WriteLine(" Operacion mas baja     : S/ " + menor);
+    Console.WriteLine(" Expedientes pendientes : " + pendientes);
+}
+
+static void ResumenPorCliente(string[] dnis, string[] nombres, double[] montos, int n)
+{
+    string[] dnisCliente = new string[201];
+    string[] nombresCliente = new string[201];
+    int[] cantidades = new int[201];
+    double[] totales = new double[201];
+    int clientes = 0;
+
+    for (int k = 1; k <= n; k++)
+    {
+        int posicion = 0;
+        for (int i = 1; i <= clientes; i++)
+        {
+            if (posicion == 0 && dnisCliente[i] == dnis[k])
+            {
+                posicion = i;
+            }
+        }
+        if (posicion == 0)
+        {
+            clientes++;
+            dnisCliente[clientes] = dnis[k];
+            nombresCliente[clientes] = nombres[k];
+            cantidades[clientes] = 1;
+            totales[clientes] = montos[k];
+        }
+        else
+        {
+            cantidades[posicion]++;
+            totales[posicion] += montos[k];
+        }
+    }
+
+    for (int i = 2; i <= clientes; i++)
+    {
+        string dniAux = dnisCliente[i];
+        string nombreAux = nombresCliente[i];
+        int cantidadAux = cantidades[i];
+        double totalAux = totales[i];
+        int j = i - 1;
+        bool debeCorrerse = true;
+        while (j >= 1 && debeCorrerse)
+        {
+            if (totales[j] < totalAux)
+            {
+                dnisCliente[j + 1] = dnisCliente[j];
+                nombresCliente[j + 1] = nombresCliente[j];
+                cantidades[j + 1] = cantidades[j];
+                totales[j + 1] = totales[j];
+                j--;
+            }
+            else
+            {
+                debeCorrerse = false;
+            }
+        }
+        dnisCliente[j + 1] = dniAux;
+        nombresCliente[j + 1] = nombreAux;
+        cantidades[j + 1] = cantidadAux;
+        totales[j + 1] = totalAux;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)");
+    Console.WriteLine(" DNI      | CLIENTE | EXPEDIENTES | TOTAL PAGADO");
+    for (int i = 1; i <= clientes; i++)
+    {
+        Console.WriteLine(" " + dnisCliente[i] + " | " + nombresCliente[i] + " | " + cantidades[i] + " | S/ " + totales[i]);
+    }
+    Console.WriteLine(" Clientes distintos: " + clientes);
+}
+

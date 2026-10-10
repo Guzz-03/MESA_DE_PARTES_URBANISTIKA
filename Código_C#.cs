@@ -538,3 +538,100 @@ static void TodasLasPosiciones(int[] orden, int n)
         orden[i] = i;
     }
 }
+
+// -----------------------------------------------------------------------------
+// ORDENAMIENTO
+// -----------------------------------------------------------------------------
+
+static void ArmarClaves(string[] claves, int n, int criterio, string[] codigos, string[] fechas, string[] nombres, string[] proyectos, double[] montos)
+{
+    for (int i = 1; i <= n; i++)
+    {
+        switch (criterio)
+        {
+            case 2:
+                claves[i] = FechaOrdenable(fechas[i]);
+                break;
+            case 3:
+                claves[i] = nombres[i].ToUpper();
+                break;
+            case 4:
+                claves[i] = RellenarCeros((long)(montos[i] * 100), 12);
+                break;
+            case 5:
+                claves[i] = proyectos[i];
+                break;
+            default:
+                claves[i] = codigos[i];
+                break;
+        }
+    }
+}
+
+static void OrdenarBurbuja(int[] orden, string[] claves, int n, bool ascendente, ref int comparaciones, ref int intercambios)
+{
+    TodasLasPosiciones(orden, n);
+    comparaciones = 0;
+    intercambios = 0;
+    int i = 1;
+    bool huboIntercambio = true;
+    while (i <= n - 1 && huboIntercambio)
+    {
+        huboIntercambio = false;
+        for (int j = 1; j <= n - i; j++)
+        {
+            comparaciones++;
+            bool desordenado;
+            if (ascendente)
+            {
+                desordenado = string.Compare(claves[orden[j]], claves[orden[j + 1]]) > 0;
+            }
+            else
+            {
+                desordenado = string.Compare(claves[orden[j]], claves[orden[j + 1]]) < 0;
+            }
+            if (desordenado)
+            {
+                int temporal = orden[j];
+                orden[j] = orden[j + 1];
+                orden[j + 1] = temporal;
+                intercambios++;
+                huboIntercambio = true;
+            }
+        }
+        i++;
+    }
+}
+
+static void OrdenarInsercion(int[] orden, string[] claves, int n, bool ascendente, ref int comparaciones, ref int desplazamientos)
+{
+    TodasLasPosiciones(orden, n);
+    comparaciones = 0;
+    desplazamientos = 0;
+    for (int i = 2; i <= n; i++)
+    {
+        int actual = orden[i];
+        int j = i - 1;
+        bool debeCorrerse = true;
+        while (j >= 1 && debeCorrerse)
+        {
+            comparaciones++;
+            if (ascendente)
+            {
+                debeCorrerse = string.Compare(claves[orden[j]], claves[actual]) > 0;
+            }
+            else
+            {
+                debeCorrerse = string.Compare(claves[orden[j]], claves[actual]) < 0;
+            }
+            if (debeCorrerse)
+            {
+                orden[j + 1] = orden[j];
+                desplazamientos++;
+                j--;
+            }
+        }
+        orden[j + 1] = actual;
+    }
+}
+

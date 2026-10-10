@@ -301,3 +301,58 @@ static bool ContieneTexto(string texto, string buscado)
     }
     return ok;
 }
+
+// -----------------------------------------------------------------------------
+// ENTRADA DE DATOS
+// -----------------------------------------------------------------------------
+
+static int ElegirOpcion(string titulo, string[] opciones, int total)
+{
+    int elegida = 99;
+    do
+    {
+        Console.WriteLine("   " + titulo);
+        for (int i = 1; i <= total; i++)
+        {
+            Console.WriteLine("     " + i + ") " + opciones[i]);
+        }
+        Console.Write("   Numero (X = cancelar): ");
+        string texto = Console.ReadLine();
+        if (texto.ToUpper() == "X")
+        {
+            elegida = 0;
+        }
+        else
+        {
+            if (SoloDigitos(texto))
+            {
+                int val = int.Parse(texto);
+                if (val >= 1 && val <= total)
+                {
+                    elegida = val;
+                }
+                else
+                {
+                    Console.WriteLine("   [!] La opcion debe estar entre 1 y " + total + ".");
+                }
+                }
+            else
+            {
+                Console.WriteLine("   [!] Ingrese solo el numero de la opcion.");
+            }
+        }
+    } while (elegida == 99);
+    return elegida;
+}
+
+static bool HayExpedientes(int n)
+{
+    bool hay = n > 0;
+    if (!hay)
+    {
+        Console.WriteLine();
+        Console.WriteLine(" [!] Todavia no hay expedientes registrados.");
+    }
+    return hay;
+}
+

@@ -635,3 +635,67 @@ static void OrdenarInsercion(int[] orden, string[] claves, int n, bool ascendent
     }
 }
 
+// -----------------------------------------------------------------------------
+// BUSQUEDA
+// -----------------------------------------------------------------------------
+
+static void BusquedaLineal(string[] codigos, string[] dnis, string[] nombres, string[] lotes, string[] proyectos, int n, string buscado, int[] encontrados, ref int total, ref int comparaciones)
+{
+    total = 0;
+    comparaciones = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        bool coincide = false;
+        int k = 1;
+        while (!coincide && k <= 5)
+        {
+            comparaciones++;
+            string campo = "";
+            switch (k)
+            {
+                case 1: campo = codigos[i]; break;
+                case 2: campo = dnis[i]; break;
+                case 3: campo = nombres[i]; break;
+                case 4: campo = lotes[i]; break;
+                default: campo = proyectos[i]; break;
+            }
+            coincide = ContieneTexto(campo, buscado);
+            k++;
+        }
+        if (coincide)
+        {
+            total++;
+            encontrados[total] = i;
+        }
+    }
+}
+
+static int BusquedaBinaria(string[] codigos, int[] orden, int n, string codigo, ref int comparaciones)
+{
+    codigo = codigo.ToUpper();
+    int posicion = 0;
+    comparaciones = 0;
+    int ini = 1;
+    int finRango = n;
+    while (ini <= finRango && posicion == 0)
+    {
+        int medio = (ini + finRango) / 2;
+        comparaciones++;
+        if (codigos[orden[medio]] == codigo)
+        {
+            posicion = orden[medio];
+        }
+        else
+        {
+            if (string.Compare(codigos[orden[medio]], codigo) < 0)
+            {
+                ini = medio + 1;
+            }
+            else
+            {
+                finRango = medio - 1;
+            }
+        }
+    }
+    return posicion;
+}

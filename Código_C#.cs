@@ -356,3 +356,67 @@ static bool HayExpedientes(int n)
     return hay;
 }
 
+// -----------------------------------------------------------------------------
+// DESCOMPONER CADENAS
+// -----------------------------------------------------------------------------
+
+static string ExtraerParte(string texto, char separador, int numeroParte)
+{
+    string parte = "";
+    int actual = 1;
+    for (int i = 0; i < texto.Length; i++)
+    {
+        char c = texto[i];
+        if (c == separador)
+        {
+            actual++;
+        }
+        else
+        {
+            if (actual == numeroParte)
+            {
+                parte += c;
+            }
+        }
+    }
+    return parte;
+}
+
+static string Recortar(string texto)
+{
+    int ini = 1;
+    int fn = texto.Length;
+    while (ini <= fn && texto[ini - 1] == ' ')
+    {
+        ini++;
+    }
+    while (fn >= ini && texto[fn - 1] == ' ')
+    {
+        fn--;
+    }
+    string limpio = "";
+    if (ini <= fn)
+    {
+        limpio = texto.Substring(ini - 1, fn - ini + 1);
+    }
+    return limpio;
+}
+
+static string QuitarPrefijo(string texto, string prefijo)
+{
+    string resto = texto;
+    if (texto.Length >= prefijo.Length)
+    {
+        if (texto.Substring(0, prefijo.Length) == prefijo)
+        {
+            resto = Recortar(texto.Substring(prefijo.Length));
+        }
+    }
+    return resto;
+}
+
+static string FechaOrdenable(string fecha)
+{
+    return ExtraerParte(fecha, '/', 3) + ExtraerParte(fecha, '/', 2) + ExtraerParte(fecha, '/', 1);
+}
+

@@ -13,11 +13,11 @@ UPN - Trujillo, 2026
 */
 class Program
 {
-// =========================================================================
-// ARREGLOS PARALELOS DE EXPEDIENTES (TEMA 4)
-// // =========================================================================
-// // La posicion i de TODOS los arreglos corresponde al mismo expediente.
-// Regla de oro: al agregar un expediente hay que agregar en LOS 11 arreglos.
+    // =========================================================================
+    // ARREGLOS PARALELOS DE EXPEDIENTES (TEMA 4)
+    // // =========================================================================
+    // // La posicion i de TODOS los arreglos corresponde al mismo expediente.
+    // Regla de oro: al agregar un expediente hay que agregar en LOS 11 arreglos.
     static List<string> codigos = new List<string>();
     static List<string> fechas = new List<string>();
     static List<string> dnis = new List<string>();
@@ -594,6 +594,8 @@ class Program
     // -----------------------------------------------------------------------------
     // REPORTES
     // -----------------------------------------------------------------------------
+    // MATRIZ (tema 3): filas = proyectos, columnas = estados
+
 
 // MATRIZ (tema 3): filas = proyectos, columnas = estados
     static int[,] ConstruirMatrizProyectoEstado()

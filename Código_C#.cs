@@ -454,6 +454,54 @@ class Program
             posiciones.Add(i);
         return posiciones;
     }
+    // =========================================================================
+    // BUSQUEDA (TEMA 3)
+    // =========================================================================
+
+    // ALTERNATIVA A. Busca el texto en codigo, DNI, nombre, lote y proyecto.
+    static (List<int>, int) BusquedaLineal(string textoBuscado)
+    {
+        List<int> encontrados = new List<int>();
+        int comparaciones = 0;
+        for (int i = 0; i < codigos.Count; i++)
+        {
+            // Los 5 datos de la posicion i, tomados de 5 arreglos paralelos
+            string[] campos = { codigos[i], dnis[i], nombres[i], lotes[i], proyectos[i] };
+            foreach (string campo in campos)
+            {
+                comparaciones = comparaciones + 1;
+                if (ContieneTexto(campo, textoBuscado))
+                {
+                    encontrados.Add(i);
+                    break;
+                }
+            }
+        }
+        return (encontrados, comparaciones);
+    }
+
+    // ALTERNATIVA B. 'orden' son las posiciones ordenadas por codigo.
+    static (int, int) BusquedaBinaria(List<int> orden, string codigo)
+    {
+        codigo = Normalizar(codigo);
+        int comparaciones = 0;
+        int inicio = 0;
+        int fin = orden.Count - 1;
+        while (inicio <= fin)
+        {
+            int medio = (inicio + fin) / 2;
+            comparaciones = comparaciones + 1;
+            string actual = codigos[orden[medio]];
+            int resultado = string.CompareOrdinal(actual, codigo);
+            if (resultado == 0)
+                return (orden[medio], comparaciones);
+            else if (resultado < 0)
+                inicio = medio + 1;
+            else
+                fin = medio - 1;
+        }
+        return (-1, comparaciones);
+    }
 
     // -----------------------------------------------------------------------------
     // ORDENAMIENTO
@@ -549,71 +597,6 @@ class Program
             }
             orden[j + 1] = actual;
         }
-    }
-
-    // -----------------------------------------------------------------------------
-    // BUSQUEDA
-    // -----------------------------------------------------------------------------
-
-    static void BusquedaLineal(string[] codigos, string[] dnis, string[] nombres, string[] lotes, string[] proyectos, int n, string buscado, int[] encontrados, ref int total, ref int comparaciones)
-    {
-        total = 0;
-        comparaciones = 0;
-        for (int i = 1; i <= n; i++)
-        {
-            bool coincide = false;
-            int k = 1;
-            while (!coincide && k <= 5)
-            {
-                comparaciones++;
-                string campo = "";
-                switch (k)
-                {
-                    case 1: campo = codigos[i]; break;
-                    case 2: campo = dnis[i]; break;
-                    case 3: campo = nombres[i]; break;
-                    case 4: campo = lotes[i]; break;
-                    default: campo = proyectos[i]; break;
-                }
-                coincide = ContieneTexto(campo, buscado);
-                k++;
-            }
-            if (coincide)
-            {
-                total++;
-                encontrados[total] = i;
-            }
-        }
-    }
-
-    static int BusquedaBinaria(string[] codigos, int[] orden, int n, string codigo, ref int comparaciones)
-    {
-        codigo = codigo.ToUpper();
-        int posicion = 0;
-        comparaciones = 0;
-        int ini = 1;
-        int finRango = n;
-        while (ini <= finRango && posicion == 0)
-        {
-            int medio = (ini + finRango) / 2;
-            comparaciones++;
-            if (codigos[orden[medio]] == codigo)
-            {
-                posicion = orden[medio];
-            }
-            else
-            {
-                if (string.Compare(codigos[orden[medio]], codigo) < 0)
-                {
-                    ini = medio + 1;
-                }
-                else
-                {
-                    finRango = medio - 1;
-                }
-            }
-        }
-        return posicion;
     }
 
     // -----------------------------------------------------------------------------

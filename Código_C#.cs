@@ -43,308 +43,218 @@ class Program
 
     static readonly CultureInfo CULTURA = CultureInfo.InvariantCulture;
 
-    // -----------------------------------------------------------------------------
-    // VALIDACIONES Y CADENAS
-    // -----------------------------------------------------------------------------
+    // =========================================================================
+    // CADENAS DE CARACTERES (TEMA 4)
+    // =========================================================================
 
-    static bool SoloDigitos(string texto)
+    static bool SoloDigitos(string cadena)
     {
-        if (texto.Length == 0) return false;
-        bool ok = true;
-        for (int i = 0; i < texto.Length; i++)
+        if (cadena.Length == 0)
+            return false;
+        foreach (char caracter in cadena)
         {
-            char c = texto[i];
-            if (c < '0' || c > '9')
-            {
-                ok = false;
-            }
+            if (caracter < '0' || caracter > '9')
+                return false;
         }
-        return ok;
+        return true;
     }
 
+    static string QuitarTildes(string texto)
+    {
+        string resultado = "";
+        foreach (char caracter in texto)
+        {
+            int posicion = CON_TILDE.IndexOf(caracter);
+            if (posicion == -1)
+                resultado = resultado + caracter;
+            else
+                resultado = resultado + SIN_TILDE[posicion];
+        }
+        return resultado;
+    }
+
+    // MAYUSCULAS, sin tildes y sin espacios sobrantes: "José " -> "JOSE"
+    static string Normalizar(string texto)
+    {
+        return QuitarTildes(texto.Trim().ToUpper());
+    }
+
+    // Primera letra de cada palabra en mayuscula: "mARIA rojas" -> "Maria Rojas"
+    static string FormatoNombre(string texto)
+    {
+        string[] palabras = texto.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+        string resultado = "";
+        foreach (string palabra in palabras)
+        {
+            if (resultado.Length > 0)
+                resultado = resultado + " ";
+            resultado = resultado + palabra.Substring(0, 1).ToUpper() + palabra.Substring(1).ToLower();
+        }
+        return resultado;
+    }
+
+    // Quita espacios y separadores de miles: "13,000.50" -> "13000.50"
     static string LimpiarMonto(string monto)
     {
-        string limpio = "";
-        for (int i = 0; i < monto.Length; i++)
-        {
-            char c = monto[i];
-            if (c != ',' && c != ' ')
-            {
-                limpio += c;
-            }
-        }
-        return limpio;
+        return monto.Trim().Replace(",", "");
     }
 
-    static string LimpiarSeparador(string texto)
+    // 13000 -> "S/ 13,000.00"
+    static string FormatoSoles(double monto)
     {
-        string limpio = "";
-        for (int i = 0; i < texto.Length; i++)
-        {
-            char c = texto[i];
-            if (c == '|')
-            {
-                limpio += " ";
-            }
-        else
-            {
-                limpio += c;
-            }
-        }
-        return limpio;
+        return "S/ " + monto.ToString("N2", CULTURA);
     }
 
-    static int ContarPalabras(string texto)
-    {
-        int total = 0;
-        bool dentro = false;
-        for (int i = 0; i < texto.Length; i++)
-        {
-            char c = texto[i];
-            if (c == ' ')
-            {
-                dentro = false;
-            }
-            else
-            {
-                if (!dentro)
-                {
-                    total++;
-                }
-                dentro = true;
-            }
-        }
-        return total;
-    }
-
-    static bool ValidarDni(string dni, ref string mensaje)
-    {
-        if (dni.Length != 8)
-        {
-            mensaje = "El DNI debe tener exactamente 8 digitos.";
-            return false;
-        }
-        if (!SoloDigitos(dni))
-        {
-            mensaje = "El DNI solo puede contener numeros.";
-            return false;
-        }
-        return true;
-    }
-
-    static bool ValidarTelefono(string tel, ref string mensaje)
-    {
-        if (tel.Length != 9)
-        {
-            mensaje = "El celular debe tener exactamente 9 digitos.";
-            return false;
-        }
-        if (!SoloDigitos(tel))
-        {
-            mensaje = "El celular solo puede contener numeros.";
-            return false;
-        }
-        if (tel[0] != '9')
-        {
-            mensaje = "El celular debe empezar con 9.";
-            return false;
-        }
-        return true;
-    }
-
-    static bool ValidarNombre(string nombre, ref string mensaje)
-    {
-        if (nombre.Length < 5)
-        {
-            mensaje = "El nombre debe tener al menos 5 caracteres.";
-            return false;
-        }
-        string revisado = nombre.ToUpper();
-        bool ok = true;
-        for (int i = 0; i < revisado.Length; i++)
-        {
-            char c = revisado[i];
-            if ((c < 'A' || c > 'Z') && c != ' ')
-            {
-                ok = false;
-            }
-        }
-        if (!ok)
-        {
-            mensaje = "El nombre solo puede contener letras y espacios.";
-            return false;
-        }
-        if (ContarPalabras(nombre) < 2)
-        {
-            mensaje = "Ingrese nombre y apellido.";
-            return false;
-        }
-        return true;
-    }
-
-    static bool ValidarMonto(string texto, ref string mensaje)
-    {
-        string monto = LimpiarMonto(texto);
-        int puntos = 0;
-        int digitos = 0;
-        if (monto.Length == 0)
-        {
-            mensaje = "El monto no puede estar vacio.";
-            return false;
-        }
-        bool ok = true;
-        for (int i = 0; i < monto.Length; i++)
-        {
-            char c = monto[i];
-            if (c == '.')
-            {
-                puntos++;
-            }
-            else
-            {
-                if (c < '0' || c > '9')
-                {
-                    ok = false;
-                }
-                else
-                {
-                    digitos++;
-                }
-            }
-        }
-        if (!ok)
-        {
-            mensaje = "El monto solo admite numeros y un punto decimal.";
-            return false;
-        }
-        if (puntos > 1)
-        {
-            mensaje = "El monto tiene mas de un punto decimal.";
-            return false;
-        }
-        if (digitos == 0)
-        {
-            mensaje = "El monto debe tener al menos un numero.";
-            return false;
-        }
-        if (double.Parse(monto, System.Globalization.CultureInfo.InvariantCulture) <= 0)
-        {
-            mensaje = "El monto debe ser mayor que cero.";
-            return false;
-        }
-            return true;
-        }
-
-    static bool ValidarFecha(string fecha, ref string mensaje)
-    {
-        if (fecha.Length != 10)
-        {
-            mensaje = "La fecha debe tener el formato dd/mm/aaaa.";
-            return false;
-        }
-        if (fecha[2] != '/' || fecha[5] != '/')
-        {
-            mensaje = "La fecha debe usar / como separador: dd/mm/aaaa.";
-            return false;
-        }
-        string pDia = fecha.Substring(0, 2);
-        string pMes = fecha.Substring(3, 2);
-        string pAnio = fecha.Substring(6, 4);
-        if (!SoloDigitos(pDia) || !SoloDigitos(pMes) || !SoloDigitos(pAnio))
-        {
-            mensaje = "La fecha solo puede contener numeros y /.";
-            return false;
-        }
-        int dia = int.Parse(pDia);
-        int mes = int.Parse(pMes);
-        int anio = int.Parse(pAnio);
-        if (mes < 1 || mes > 12)
-        {
-            mensaje = "El mes debe estar entre 01 y 12.";
-            return false;
-        }
-        if (anio < 2020 || anio > 2030)
-        {
-            mensaje = "El anio debe estar entre 2020 y 2030.";
-            return false;
-        }
-
-        int tope = 31;
-        switch (mes)
-        {
-            case 2:
-                tope = 28;
-                break;
-            case 4: case 6: case 9: case 11:
-                tope = 30;
-                break;
-            default:
-                tope = 31;
-                break;
-        }
-        bool bisiesto = (anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0);
-        if (mes == 2 && bisiesto)
-        {
-            tope = 29;
-        }
-        if (dia < 1 || dia > tope)
-        {
-            mensaje = "El dia no existe para ese mes (maximo " + tope + ").";
-            return false;
-        }
-        return true;
-    }
-
-    static string RellenarCeros(double numero, int largo)
-    {
-        string texto = ((long)numero).ToString();
-        while (texto.Length < largo)
-        {
-            texto = "0" + texto;
-        }
-        return texto;
-    }
-
-    static string FechaDeHoy()
-    {
-        DateTime now = DateTime.Now;
-        string t = now.ToString("yyyyMMdd");
-        return t.Substring(6, 2) + "/" + t.Substring(4, 2) + "/" + t.Substring(0, 4);
-    }
-
-    static long FechaActualInt()
-    {
-        return long.Parse(DateTime.Now.ToString("yyyyMMdd"));
-    }
-
+    // Busca 'buscado' dentro de 'texto' caracter por caracter (algoritmo de
+    // subcadena) en lugar de usar Contains, para evidenciar el manejo de cadenas.
     static bool ContieneTexto(string texto, string buscado)
     {
-        texto = texto.ToUpper();
-        buscado = buscado.ToUpper();
-        bool ok = false;
-        if (buscado.Length > 0 && buscado.Length <= texto.Length)
+        texto = Normalizar(texto);
+        buscado = Normalizar(buscado);
+        if (buscado.Length == 0 || buscado.Length > texto.Length)
+            return false;
+
+        for (int inicio = 0; inicio <= texto.Length - buscado.Length; inicio++)
         {
-            int inicio = 1;
-            while (!ok && inicio <= texto.Length - buscado.Length + 1)
+            bool coincide = true;
+            for (int desplazamiento = 0; desplazamiento < buscado.Length; desplazamiento++)
             {
-                bool coincide = true;
-                int k = 1;
-                while (coincide && k <= buscado.Length)
+                if (texto[inicio + desplazamiento] != buscado[desplazamiento])
                 {
-                    if (texto[inicio + k - 2] != buscado[k - 1])
-                    {
-                        coincide = false;
-                    }
-                    k++;
+                    coincide = false;
+                    break;
                 }
-                if (coincide)
-                {
-                    ok = true;
-                }
-                inicio++;
             }
+            if (coincide)
+                return true;
         }
-        return ok;
+        return false;
+    }
+
+    // --- Descomponer cadenas: separar un texto en sus partes ----------------
+
+    // "EXP-2026-0007" -> ["EXP", "2026", "0007"]
+    static string[] DescomponerCodigo(string codigo)
+    {
+        return codigo.Split('-');
+    }
+
+    // "18/08/2026" -> ["18", "08", "2026"]
+    static string[] DescomponerFecha(string fecha)
+    {
+        return fecha.Split('/');
+    }
+
+    // "MZ A - LT 12" -> ["A", "12"]; si no tiene ese formato se devuelve tal cual
+    static string[] DescomponerLote(string lote)
+    {
+        string[] partes = lote.Split('-');
+        if (partes.Length != 2)
+            return new string[] { lote, "" };
+        string manzana = partes[0].Trim();
+        string numero = partes[1].Trim();
+        if (manzana.StartsWith("MZ"))
+            manzana = manzana.Substring(2).Trim();
+        if (numero.StartsWith("LT"))
+            numero = numero.Substring(2).Trim();
+        return new string[] { manzana, numero };
+    }
+
+    // "dd/mm/aaaa" -> "aaaammdd" para que el orden de texto sea cronologico
+    static string FechaOrdenable(string fecha)
+    {
+        string[] partes = DescomponerFecha(fecha);
+        return partes[2] + partes[1] + partes[0];
+    }
+
+    // --- Validaciones: devuelven una tupla (esValido, mensaje) --------------
+
+    static (bool, string) ValidarDni(string dni)
+    {
+        if (dni.Length != 8)
+            return (false, "El DNI debe tener exactamente 8 digitos.");
+        if (!SoloDigitos(dni))
+            return (false, "El DNI solo puede contener numeros.");
+        return (true, "OK");
+    }
+
+    static (bool, string) ValidarTelefono(string telefono)
+    {
+        if (telefono.Length != 9)
+            return (false, "El celular debe tener exactamente 9 digitos.");
+        if (!SoloDigitos(telefono))
+            return (false, "El celular solo puede contener numeros.");
+        if (telefono[0] != '9')
+            return (false, "El celular debe empezar con 9.");
+        return (true, "OK");
+    }
+
+    static (bool, string) ValidarNombre(string nombre)
+    {
+        if (nombre.Length < 5)
+            return (false, "El nombre debe tener al menos 5 caracteres.");
+        foreach (char caracter in Normalizar(nombre))
+        {
+            if (LETRAS.IndexOf(caracter) == -1)
+                return (false, "El nombre solo puede contener letras y espacios.");
+        }
+        if (nombre.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Length < 2)
+            return (false, "Ingrese nombre y apellido.");
+        return (true, "OK");
+    }
+
+    static (bool, string) ValidarMonto(string monto)
+    {
+        monto = LimpiarMonto(monto);
+        if (monto.Length == 0)
+            return (false, "El monto no puede estar vacio.");
+        int puntos = 0;
+        int digitos = 0;
+        foreach (char caracter in monto)
+        {
+            if (caracter == '.')
+                puntos = puntos + 1;
+            else if (caracter < '0' || caracter > '9')
+                return (false, "El monto solo admite numeros y un punto decimal.");
+            else
+                digitos = digitos + 1;
+        }
+        if (puntos > 1)
+            return (false, "El monto tiene mas de un punto decimal.");
+        if (digitos == 0)
+            return (false, "El monto debe tener al menos un numero.");
+        if (double.Parse(monto, CULTURA) <= 0)
+            return (false, "El monto debe ser mayor que cero.");
+        return (true, "OK");
+    }
+
+    // Valida dd/mm/aaaa descomponiendo la cadena, incluido el anio bisiesto
+    static (bool, string) ValidarFecha(string fecha)
+    {
+        if (fecha.Length != 10 || fecha[2] != '/' || fecha[5] != '/')
+            return (false, "La fecha debe tener el formato dd/mm/aaaa.");
+
+        string[] partes = DescomponerFecha(fecha);
+        if (!SoloDigitos(partes[0]) || !SoloDigitos(partes[1]) || !SoloDigitos(partes[2]))
+            return (false, "La fecha solo puede contener numeros y '/'.");
+
+        int dia = int.Parse(partes[0]);
+        int mes = int.Parse(partes[1]);
+        int anio = int.Parse(partes[2]);
+
+        if (mes < 1 || mes > 12)
+            return (false, "El mes debe estar entre 01 y 12.");
+        if (anio < 2020 || anio > 2030)
+            return (false, "El anio debe estar entre 2020 y 2030.");
+
+        int[] diasPorMes = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+        int tope = diasPorMes[mes - 1];
+        bool bisiesto = (anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0);
+        if (mes == 2 && bisiesto)
+            tope = 29;
+        if (dia < 1 || dia > tope)
+            return (false, "El dia no existe para ese mes (maximo " + tope + ").");
+        return (true, "OK");
     }
 
     // -----------------------------------------------------------------------------

@@ -506,639 +506,570 @@ class Program
     // -----------------------------------------------------------------------------
     // ORDENAMIENTO
     // -----------------------------------------------------------------------------
+// Con arreglos paralelos, mover un expediente obligaria a mover sus 11 datos.
+    // En su lugar se ordena un ARREGLO DE POSICIONES y los originales no se tocan.
 
-    static void ArmarClaves(string[] claves, int n, int criterio, string[] codigos, string[] fechas, string[] nombres, string[] proyectos, double[] montos)
+    // Compara las posiciones a y b segun el criterio: <0, 0 o >0
+    static int Comparar(int a, int b, string criterio)
     {
-        for (int i = 1; i <= n; i++)
-        {
-            switch (criterio)
-            {
-                case 2:
-                    claves[i] = FechaOrdenable(fechas[i]);
-                    break;
-                case 3:
-                    claves[i] = nombres[i].ToUpper();
-                    break;
-                case 4:
-                    claves[i] = RellenarCeros((long)(montos[i] * 100), 12);
-                    break;
-                case 5:
-                    claves[i] = proyectos[i];
-                    break;
-                default:
-                    claves[i] = codigos[i];
-                    break;
-            }
-        }
+        if (criterio == "MONTO")
+            return montos[a].CompareTo(montos[b]);                 // numero: 900 < 1000
+        if (criterio == "FECHA")
+            return string.CompareOrdinal(FechaOrdenable(fechas[a]), FechaOrdenable(fechas[b]));
+        if (criterio == "CLIENTE")
+            return string.CompareOrdinal(Normalizar(nombres[a]), Normalizar(nombres[b]));
+        if (criterio == "PROYECTO")
+            return string.CompareOrdinal(proyectos[a], proyectos[b]);
+        return string.CompareOrdinal(codigos[a], codigos[b]);
     }
 
-    static void OrdenarBurbuja(int[] orden, string[] claves, int n, bool ascendente, ref int comparaciones, ref int intercambios)
+    // BURBUJA. Devuelve (posiciones ordenadas, comparaciones, intercambios)
+    static (List<int>, int, int) OrdenarBurbuja(string criterio, bool ascendente)
     {
-        TodasLasPosiciones(orden, n);
-        comparaciones = 0;
-        intercambios = 0;
-        int i = 1;
-        bool huboIntercambio = true;
-        while (i <= n - 1 && huboIntercambio)
+        List<int> orden = TodasLasPosiciones();
+        int comparaciones = 0;
+        int intercambios = 0;
+        int total = orden.Count;
+
+        for (int i = 0; i < total - 1; i++)
         {
-            huboIntercambio = false;
-            for (int j = 1; j <= n - i; j++)
+            bool huboIntercambio = false;
+            for (int j = 0; j < total - 1 - i; j++)
             {
-                comparaciones++;
+                comparaciones = comparaciones + 1;
+                int resultado = Comparar(orden[j], orden[j + 1], criterio);
                 bool desordenado;
                 if (ascendente)
-                {
-                    desordenado = string.Compare(claves[orden[j]], claves[orden[j + 1]]) > 0;
-                }
+                    desordenado = resultado > 0;
                 else
-                {
-                    desordenado = string.Compare(claves[orden[j]], claves[orden[j + 1]]) < 0;
-                }
+                    desordenado = resultado < 0;
                 if (desordenado)
                 {
-                    int temporal = orden[j];
+                    int aux = orden[j];
                     orden[j] = orden[j + 1];
-                    orden[j + 1] = temporal;
-                    intercambios++;
+                    orden[j + 1] = aux;
+                    intercambios = intercambios + 1;
                     huboIntercambio = true;
                 }
             }
-            i++;
+            if (!huboIntercambio)
+                break;   // ya esta ordenado
         }
+        return (orden, comparaciones, intercambios);
     }
 
-    static void OrdenarInsercion(int[] orden, string[] claves, int n, bool ascendente, ref int comparaciones, ref int desplazamientos)
+    // INSERCION. Devuelve (posiciones ordenadas, comparaciones, desplazamientos)
+    static (List<int>, int, int) OrdenarInsercion(string criterio, bool ascendente)
     {
-        TodasLasPosiciones(orden, n);
-        comparaciones = 0;
-        desplazamientos = 0;
-        for (int i = 2; i <= n; i++)
+        List<int> orden = TodasLasPosiciones();
+        int comparaciones = 0;
+        int desplazamientos = 0;
+
+        for (int i = 1; i < orden.Count; i++)
         {
             int actual = orden[i];
             int j = i - 1;
-            bool debeCorrerse = true;
-            while (j >= 1 && debeCorrerse)
+            while (j >= 0)
             {
-                comparaciones++;
+                comparaciones = comparaciones + 1;
+                int resultado = Comparar(orden[j], actual, criterio);
+                bool debeCorrerse;
                 if (ascendente)
-                {
-                    debeCorrerse = string.Compare(claves[orden[j]], claves[actual]) > 0;
-                }
+                    debeCorrerse = resultado > 0;
                 else
-                {
-                    debeCorrerse = string.Compare(claves[orden[j]], claves[actual]) < 0;
-                }
-                if (debeCorrerse)
-                {
-                    orden[j + 1] = orden[j];
-                    desplazamientos++;
-                    j--;
-                }
+                    debeCorrerse = resultado < 0;
+                if (!debeCorrerse)
+                    break;
+                orden[j + 1] = orden[j];
+                desplazamientos = desplazamientos + 1;
+                j = j - 1;
             }
             orden[j + 1] = actual;
         }
+        return (orden, comparaciones, desplazamientos);
     }
+
 
     // -----------------------------------------------------------------------------
     // REPORTES
     // -----------------------------------------------------------------------------
 
-    static void ReporteProyectoEstado(string[] proyectos, string[] estados, int n, string[] catProyectos, string[] catEstados)
+// MATRIZ (tema 3): filas = proyectos, columnas = estados
+    static int[,] ConstruirMatrizProyectoEstado()
     {
-        int[,] matriz = new int[7, 5];
-        for (int k = 1; k <= n; k++)
+        int[,] matriz = new int[PROYECTOS.Length, ESTADOS.Length];   // inicia en 0
+
+        for (int k = 0; k < codigos.Count; k++)
         {
-            int fila = 6;
-            for (int i = 1; i <= 6; i++)
+            int fila = PROYECTOS.Length - 1;           // por defecto: OTRO
+            for (int i = 0; i < PROYECTOS.Length; i++)
             {
-                if (catProyectos[i] == proyectos[k])
-                {
+                if (PROYECTOS[i] == proyectos[k])
                     fila = i;
-                }
             }
-            for (int j = 1; j <= 4; j++)
+            for (int j = 0; j < ESTADOS.Length; j++)
             {
-                if (catEstados[j] == estados[k])
-                {
-                    matriz[fila, j]++;
-                }
+                if (ESTADOS[j] == estados[k])
+                    matriz[fila, j] = matriz[fila, j] + 1;
             }
         }
-        Console.WriteLine();
-        Console.WriteLine(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO");
-        Console.WriteLine(" PROYECTO | RECIBIDO | EN REVISION | OBSERVADO | ATENDIDO | TOTAL");
-        for (int i = 1; i <= 6; i++)
+        return matriz;
+    }
+
+    static void MostrarMatriz(int[,] matriz)
+    {
+        string encabezado = "PROYECTO".PadRight(12);
+        foreach (string estado in ESTADOS)
+            encabezado = encabezado + estado.PadLeft(13);
+        encabezado = encabezado + "TOTAL".PadLeft(8);
+        Console.WriteLine(encabezado);
+        Console.WriteLine(Linea('-', encabezado.Length));
+
+        int[] totalesColumna = new int[ESTADOS.Length];
+        for (int i = 0; i < PROYECTOS.Length; i++)
         {
             int sumaFila = 0;
-            Console.Write(" " + catProyectos[i]);
-            for (int j = 1; j <= 4; j++)
+            string linea = PROYECTOS[i].PadRight(12);
+            for (int j = 0; j < ESTADOS.Length; j++)
             {
-                Console.Write(" | " + matriz[i, j]);
-                sumaFila += matriz[i, j];
+                linea = linea + matriz[i, j].ToString().PadLeft(13);
+                sumaFila = sumaFila + matriz[i, j];
+                totalesColumna[j] = totalesColumna[j] + matriz[i, j];
             }
-            Console.WriteLine(" | " + sumaFila);
+            Console.WriteLine(linea + sumaFila.ToString().PadLeft(8));
         }
-        Console.WriteLine(" TOTAL GENERAL: " + n);
+
+        Console.WriteLine(Linea('-', encabezado.Length));
+        string lineaTotal = "TOTAL".PadRight(12);
+        foreach (int total in totalesColumna)
+            lineaTotal = lineaTotal + total.ToString().PadLeft(13);
+        Console.WriteLine(lineaTotal + codigos.Count.ToString().PadLeft(8));
     }
 
-    static void ReporteMontos(double[] montos, string[] estados, int n)
+    // Devuelve (total, promedio, mayor, menor) recorriendo el arreglo montos
+    static (double, double, double, double) CalcularMontos()
     {
+        if (montos.Count == 0)
+            return (0, 0, 0, 0);
         double total = 0;
-        double mayor = montos[1];
-        double menor = montos[1];
-        int pendientes = 0;
-        for (int k = 1; k <= n; k++)
+        double mayor = montos[0];
+        double menor = montos[0];
+        foreach (double monto in montos)
         {
-            total += montos[k];
-            if (montos[k] > mayor) mayor = montos[k];
-            if (montos[k] < menor) menor = montos[k];
-            if (estados[k] != "ATENDIDO") pendientes++;
+            total = total + monto;
+            if (monto > mayor)
+                mayor = monto;
+            if (monto < menor)
+                menor = monto;
         }
-        Console.WriteLine();
-        Console.WriteLine(" Monto total registrado : S/ " + total);
-        Console.WriteLine(" Monto promedio         : S/ " + (Math.Round((total / n) * 100.0) / 100.0));
-        Console.WriteLine(" Operacion mas alta     : S/ " + mayor);
-        Console.WriteLine(" Operacion mas baja     : S/ " + menor);
-        Console.WriteLine(" Expedientes pendientes : " + pendientes);
+        return (total, total / montos.Count, mayor, menor);
     }
 
-    static void ResumenPorCliente(string[] dnis, string[] nombres, double[] montos, int n)
+    static int ContarPendientes()
     {
-        string[] dnisCliente = new string[201];
-        string[] nombresCliente = new string[201];
-        int[] cantidades = new int[201];
-        double[] totales = new double[201];
-        int clientes = 0;
-
-        for (int k = 1; k <= n; k++)
+        int pendientes = 0;
+        foreach (string estado in estados)
         {
-            int posicion = 0;
-            for (int i = 1; i <= clientes; i++)
+            if (estado != "ATENDIDO")
+                pendientes = pendientes + 1;
+        }
+        return pendientes;
+    }
+
+    // Agrupa por DNI en CUATRO ARREGLOS PARALELOS nuevos: la posicion i de
+    // los cuatro corresponde al mismo cliente.
+    static void ResumenPorCliente(List<string> dnisCliente, List<string> nombresCliente,
+                                  List<int> cantidades, List<double> totales)
+    {
+        for (int k = 0; k < codigos.Count; k++)
+        {
+            int posicion = -1;
+            for (int i = 0; i < dnisCliente.Count; i++)
             {
-                if (posicion == 0 && dnisCliente[i] == dnis[k])
+                if (dnisCliente[i] == dnis[k])
                 {
                     posicion = i;
+                    break;
                 }
             }
-            if (posicion == 0)
+            if (posicion == -1)
             {
-                clientes++;
-                dnisCliente[clientes] = dnis[k];
-                nombresCliente[clientes] = nombres[k];
-                cantidades[clientes] = 1;
-                totales[clientes] = montos[k];
+                dnisCliente.Add(dnis[k]);
+                nombresCliente.Add(nombres[k]);
+                cantidades.Add(1);
+                totales.Add(montos[k]);
             }
             else
             {
-                cantidades[posicion]++;
-                totales[posicion] += montos[k];
+                cantidades[posicion] = cantidades[posicion] + 1;
+                totales[posicion] = totales[posicion] + montos[k];
             }
         }
+    }
 
-        for (int i = 2; i <= clientes; i++)
+    // Insercion de mayor a menor total, moviendo los 4 arreglos JUNTOS: si solo
+    // se moviera 'totales', cada monto quedaria asignado al cliente equivocado.
+    static void OrdenarClientesPorTotal(List<string> dnisCliente, List<string> nombresCliente,
+                                        List<int> cantidades, List<double> totales)
+    {
+        for (int i = 1; i < totales.Count; i++)
         {
             string dniAux = dnisCliente[i];
             string nombreAux = nombresCliente[i];
             int cantidadAux = cantidades[i];
             double totalAux = totales[i];
             int j = i - 1;
-            bool debeCorrerse = true;
-            while (j >= 1 && debeCorrerse)
+            while (j >= 0 && totales[j] < totalAux)
             {
-                if (totales[j] < totalAux)
-                {
-                    dnisCliente[j + 1] = dnisCliente[j];
-                    nombresCliente[j + 1] = nombresCliente[j];
-                    cantidades[j + 1] = cantidades[j];
-                    totales[j + 1] = totales[j];
-                    j--;
-                }
-                else
-                {
-                    debeCorrerse = false;
-                }
+                dnisCliente[j + 1] = dnisCliente[j];
+                nombresCliente[j + 1] = nombresCliente[j];
+                cantidades[j + 1] = cantidades[j];
+                totales[j + 1] = totales[j];
+                j = j - 1;
             }
             dnisCliente[j + 1] = dniAux;
             nombresCliente[j + 1] = nombreAux;
             cantidades[j + 1] = cantidadAux;
             totales[j + 1] = totalAux;
         }
-
-        Console.WriteLine();
-        Console.WriteLine(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)");
-        Console.WriteLine(" DNI      | CLIENTE | EXPEDIENTES | TOTAL PAGADO");
-        for (int i = 1; i <= clientes; i++)
-        {
-            Console.WriteLine(" " + dnisCliente[i] + " | " + nombresCliente[i] + " | " + cantidades[i] + " | S/ " + totales[i]);
-        }
-        Console.WriteLine(" Clientes distintos: " + clientes);
     }
 
-    // =============================================================================
-    // ALGORITMO PRINCIPAL
-    // =============================================================================
+    // =========================================================================
+    // OPCIONES DEL MENU
+    // =========================================================================
 
-    static void Main(string[] args)
+    static void OpcionRegistrar()
     {
-        string[] codigos = new string[201];
-        string[] fechas = new string[201];
-        string[] dnis = new string[201];
-        string[] nombres = new string[201];
-        string[] telefonos = new string[201];
-        string[] proyectos = new string[201];
-        string[] lotes = new string[201];
-        string[] tipos = new string[201];
-        string[] estados = new string[201];
-        string[] responsables = new string[201];
-        double[] montos = new double[201];
+        Console.WriteLine("\n" + Linea('=', 62));
+        Console.WriteLine(" REGISTRO DE NUEVO EXPEDIENTE   (escriba X para cancelar)");
+        Console.WriteLine(Linea('=', 62));
 
-        string[] catProyectos = new string[7];
-        string[] catEstados = new string[5];
-        string[] catTipos = new string[6];
+        string dni = PedirDato(" DNI del cliente (8 digitos): ", ValidarDni);
+        if (dni == null)
+            return;
+        string nombre = PedirDato(" Nombres y apellidos: ", ValidarNombre);
+        if (nombre == null)
+            return;
+        nombre = FormatoNombre(nombre);
+        string telefono = PedirDato(" Celular (9 digitos): ", ValidarTelefono);
+        if (telefono == null)
+            return;
+        string proyecto = ElegirOpcion("Proyecto:", PROYECTOS);
+        if (proyecto == null)
+            return;
 
-        int[] orden = new int[201];
-        int[] encontrados = new int[201];
-        string[] claves = new string[201];
+        string lote = Leer(" Lote (ejemplo: MZ A - LT 12): ").ToUpper().Replace("|", " ");
+        if (lote == "X")
+            return;
+        if (lote.Length == 0)
+            lote = "SIN ASIGNAR";
 
-        catProyectos[1] = "HUANCHACO";
-        catProyectos[2] = "MORELIA";
-        catProyectos[3] = "VERDE MAR";
-        catProyectos[4] = "CALIZA";
-        catProyectos[5] = "NURA";
-        catProyectos[6] = "OTRO";
+        string tipo = ElegirOpcion("Tipo de documento presentado:", TIPOS_DOCUMENTO);
+        if (tipo == null)
+            return;
 
-        catEstados[1] = "RECIBIDO";
-        catEstados[2] = "EN REVISION";
-        catEstados[3] = "OBSERVADO";
-        catEstados[4] = "ATENDIDO";
-
-        catTipos[1] = "CONTRATO DE SEPARACION";
-        catTipos[2] = "MINUTA DE COMPRA VENTA";
-        catTipos[3] = "VOUCHER DE PAGO";
-        catTipos[4] = "COPIA DE DNI";
-        catTipos[5] = "SOLICITUD DE DESISTIMIENTO";
-
-        int n = 0;
-        bool salir = false;
-
-        do
+        int repetido = PosicionDuplicado(dni, lote, tipo);
+        if (repetido != -1)
         {
-            Console.WriteLine();
-            Console.WriteLine(" ==========================================================");
-            Console.WriteLine("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO");
-            Console.WriteLine(" ==========================================================");
-            Console.WriteLine("    1) Registrar un expediente nuevo");
-            Console.WriteLine("    2) Listar todos los expedientes");
-            Console.WriteLine("    3) Buscar expediente (nombre, DNI, lote o codigo)");
-            Console.WriteLine("    4) Buscar por codigo exacto  [busqueda binaria]");
-            Console.WriteLine("    5) Ordenar expedientes");
-            Console.WriteLine("    6) Cambiar el estado de un expediente");
-            Console.WriteLine("    7) Reporte por proyecto y estado  [matriz]");
-            Console.WriteLine("    8) Comparar los dos algoritmos de busqueda");
-            Console.WriteLine("    9) Resumen por cliente  [arreglos paralelos]");
-            Console.WriteLine("   10) Cargar datos de prueba");
-            Console.WriteLine("    0) Salir");
-            Console.Write(" Elija una opcion: ");
-            string texto = Console.ReadLine();
-
-            int opcionMenu = 99;
-            if (SoloDigitos(texto))
+            Console.WriteLine("\n [!] ATENCION: ya existe un expediente abierto con esos datos:");
+            Console.WriteLine("     " + codigos[repetido] + " | " + nombres[repetido] + " | " + estados[repetido]);
+            if (Leer(" Desea registrarlo igual? (S/N): ").ToUpper() != "S")
             {
-                opcionMenu = int.Parse(texto);
+                Console.WriteLine(" Registro cancelado.");
+                return;
             }
+        }
 
-            switch (opcionMenu)
+        string textoMonto = PedirDato(" Monto de la operacion en soles: ", ValidarMonto);
+        if (textoMonto == null)
+            return;
+        double monto = Math.Round(double.Parse(LimpiarMonto(textoMonto), CULTURA), 2);
+
+        string hoy = DateTime.Now.ToString("dd/MM/yyyy", CULTURA);
+        string fecha;
+        while (true)
+        {
+            fecha = Leer(" Fecha dd/mm/aaaa [Enter = " + hoy + "]: ");
+            if (fecha.Length == 0)
+                fecha = hoy;
+            if (fecha.ToUpper() == "X")
+                return;
+            var (esValida, aviso) = ValidarFecha(fecha);
+            if (esValida)
+                break;
+            Console.WriteLine("   [!] " + aviso);
+        }
+
+        string responsable = Leer(" Responsable que recibe [Enter = MESA DE PARTES]: ").ToUpper();
+        if (responsable.Length == 0)
+            responsable = "MESA DE PARTES";
+
+        string codigo = GenerarCodigo();
+        AgregarExpediente(codigo, fecha, dni, nombre, telefono, proyecto, lote,
+                          tipo, monto, "RECIBIDO", responsable);
+        Console.WriteLine("\n [OK] Expediente registrado con el codigo: " + codigo);
+    }
+
+    static void OpcionListar()
+    {
+        if (!HayExpedientes())
+            return;
+        MostrarTabla(TodasLasPosiciones());
+        var (total, promedio, mayor, menor) = CalcularMontos();
+        Console.WriteLine(" Monto total    : " + FormatoSoles(total));
+        Console.WriteLine(" Monto promedio : " + FormatoSoles(promedio));
+        Console.WriteLine(" Pendientes     : " + ContarPendientes() + " de " + codigos.Count);
+    }
+
+    static void OpcionBuscar()
+    {
+        string texto = Leer("\n Escriba nombre, DNI, lote, proyecto o codigo: ");
+        if (texto.Length == 0)
+        {
+            Console.WriteLine(" [!] No escribio nada que buscar.");
+            return;
+        }
+        var (encontrados, comparaciones) = BusquedaLineal(texto);
+        if (encontrados.Count == 0)
+            Console.WriteLine("\n No se encontro ningun expediente con '" + texto + "'.");
+        else
+        {
+            MostrarTabla(encontrados);
+            if (encontrados.Count == 1)
+                MostrarFicha(encontrados[0]);
+        }
+        Console.WriteLine(" [Metrica] Busqueda lineal: " + comparaciones + " comparaciones.");
+    }
+
+    static void OpcionBuscarBinaria()
+    {
+        if (!HayExpedientes())
+            return;
+        string codigo = Leer("\n Codigo exacto (ejemplo EXP-2026-0001): ");
+        if (codigo.Length == 0)
+        {
+            Console.WriteLine(" [!] No escribio ningun codigo.");
+            return;
+        }
+        var (orden, compOrden, _) = OrdenarBurbuja("CODIGO", true);
+        var (posicion, compBusq) = BusquedaBinaria(orden, codigo);
+        if (posicion == -1)
+            Console.WriteLine("\n No existe el expediente " + codigo.ToUpper() + ".");
+        else
+            MostrarFicha(posicion);
+        Console.WriteLine(" [Metrica] Ordenamiento previo: " + compOrden + " comparaciones.");
+        Console.WriteLine(" [Metrica] Busqueda binaria   : " + compBusq + " comparaciones.");
+    }
+
+    static void OpcionOrdenar()
+    {
+        if (!HayExpedientes())
+            return;
+        Console.WriteLine("\n Ordenar por:");
+        Console.WriteLine("   1) Codigo    2) Fecha    3) Cliente    4) Monto    5) Proyecto");
+        string[] criterios = { "CODIGO", "FECHA", "CLIENTE", "MONTO", "PROYECTO" };
+        string elegido = Leer(" Numero: ");
+        if (elegido.Length != 1 || elegido[0] < '1' || elegido[0] > '5')
+        {
+            Console.WriteLine(" [!] Opcion no valida.");
+            return;
+        }
+        string criterio = criterios[int.Parse(elegido) - 1];
+        bool ascendente = Leer(" Ascendente (A) o descendente (D)? [A]: ").ToUpper() != "D";
+        Console.WriteLine("\n Algoritmo:  1) Burbuja    2) Insercion");
+
+        List<int> orden;
+        string detalle;
+        if (Leer(" Numero [1]: ") == "2")
+        {
+            var (ordenIns, comparaciones, movimientos) = OrdenarInsercion(criterio, ascendente);
+            orden = ordenIns;
+            detalle = "INSERCION: " + comparaciones + " comparaciones y " + movimientos + " desplazamientos.";
+        }
+        else
+        {
+            var (ordenBur, comparaciones, movimientos) = OrdenarBurbuja(criterio, ascendente);
+            orden = ordenBur;
+            detalle = "BURBUJA: " + comparaciones + " comparaciones y " + movimientos + " intercambios.";
+        }
+        MostrarTabla(orden);
+        Console.WriteLine(" [Metrica] " + detalle);
+    }
+
+    // Se cambia el dato en la posicion i del arreglo 'estados'
+    static void OpcionCambiarEstado()
+    {
+        if (!HayExpedientes())
+            return;
+        string codigo = Leer("\n Codigo del expediente: ");
+        int i = PosicionPorCodigo(codigo);
+        if (i == -1)
+        {
+            Console.WriteLine("\n [!] No existe el expediente " + codigo.ToUpper() + ".");
+            return;
+        }
+        Console.WriteLine(" Estado actual: " + estados[i]);
+        string nuevo = ElegirOpcion("Nuevo estado:", ESTADOS);
+        if (nuevo == null)
+            return;
+        if (nuevo == estados[i])
+        {
+            Console.WriteLine("\n [!] El expediente ya esta en estado " + nuevo + ".");
+            return;
+        }
+        estados[i] = nuevo;
+        Console.WriteLine("\n [OK] El expediente " + codigos[i] + " ahora esta en estado: " + nuevo);
+    }
+
+    static void OpcionReporte()
+    {
+        if (!HayExpedientes())
+            return;
+        Console.WriteLine("\n" + Linea('=', 62));
+        Console.WriteLine(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO");
+        Console.WriteLine(Linea('=', 62));
+        MostrarMatriz(ConstruirMatrizProyectoEstado());
+        var (total, promedio, mayor, menor) = CalcularMontos();
+        Console.WriteLine("\n Monto total registrado : " + FormatoSoles(total));
+        Console.WriteLine(" Monto promedio         : " + FormatoSoles(promedio));
+        Console.WriteLine(" Operacion mas alta     : " + FormatoSoles(mayor));
+        Console.WriteLine(" Operacion mas baja     : " + FormatoSoles(menor));
+        Console.WriteLine(" Expedientes pendientes : " + ContarPendientes());
+    }
+
+    // Mide las dos alternativas de busqueda sobre el mismo dato
+    static void OpcionComparar()
+    {
+        if (!HayExpedientes())
+            return;
+        string codigo = Leer("\n Codigo a buscar con ambos algoritmos: ");
+        if (codigo.Length == 0)
+        {
+            Console.WriteLine(" [!] No escribio ningun codigo.");
+            return;
+        }
+        var (encontrados, compLineal) = BusquedaLineal(codigo);
+        var (orden, compOrden, _) = OrdenarBurbuja("CODIGO", true);
+        var (posicion, compBinaria) = BusquedaBinaria(orden, codigo);
+
+        Console.WriteLine("\n" + Linea('=', 62));
+        Console.WriteLine(" COMPARACION DE ALTERNATIVAS ALGORITMICAS");
+        Console.WriteLine(Linea('=', 62));
+        Console.WriteLine(" Expedientes en los arreglos : " + codigos.Count);
+        Console.WriteLine();
+        Console.WriteLine(" ALTERNATIVA A - Busqueda lineal");
+        Console.WriteLine("   Comparaciones          : " + compLineal);
+        Console.WriteLine("   Encontro el expediente : " + (encontrados.Count > 0 ? "SI" : "NO"));
+        Console.WriteLine("   Requiere orden previo  : NO");
+        Console.WriteLine("   Admite busqueda parcial: SI");
+        Console.WriteLine();
+        Console.WriteLine(" ALTERNATIVA B - Busqueda binaria");
+        Console.WriteLine("   Comparaciones          : " + compBinaria);
+        Console.WriteLine("   Encontro el expediente : " + (posicion != -1 ? "SI" : "NO"));
+        Console.WriteLine("   Costo de ordenar antes : " + compOrden + " comparaciones");
+        Console.WriteLine("   Admite busqueda parcial: NO (solo coincidencia exacta)");
+        Console.WriteLine();
+        Console.WriteLine(" CONCLUSION: la binaria gana en la busqueda por codigo cuando el");
+        Console.WriteLine(" arreglo ya esta ordenado. Si hay que ordenar en cada consulta, la");
+        Console.WriteLine(" lineal conviene con pocos registros.");
+        Console.WriteLine(Linea('=', 62));
+    }
+
+    static void OpcionResumenClientes()
+    {
+        if (!HayExpedientes())
+            return;
+        List<string> dnisCliente = new List<string>();
+        List<string> nombresCliente = new List<string>();
+        List<int> cantidades = new List<int>();
+        List<double> totales = new List<double>();
+        ResumenPorCliente(dnisCliente, nombresCliente, cantidades, totales);
+        OrdenarClientesPorTotal(dnisCliente, nombresCliente, cantidades, totales);
+
+        Console.WriteLine("\n" + Linea('=', 62));
+        Console.WriteLine(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)");
+        Console.WriteLine(Linea('=', 62));
+        string encabezado = "DNI".PadRight(10) + "CLIENTE".PadRight(24) +
+                            "EXPEDIENTES".PadLeft(12) + "TOTAL PAGADO".PadLeft(16);
+        Console.WriteLine(encabezado);
+        Console.WriteLine(Linea('-', encabezado.Length));
+        for (int i = 0; i < dnisCliente.Count; i++)
+        {
+            Console.WriteLine(dnisCliente[i].PadRight(10) + nombresCliente[i].PadRight(24) +
+                              cantidades[i].ToString().PadLeft(12) + FormatoSoles(totales[i]).PadLeft(16));
+        }
+        Console.WriteLine(Linea('-', encabezado.Length));
+        Console.WriteLine(" Clientes distintos: " + dnisCliente.Count);
+    }
+
+    // Carga expedientes ficticios para demostrar el sistema
+    static void OpcionDatosPrueba()
+    {
+        if (codigos.Count > 0)
+        {
+            if (Leer("\n Ya hay " + codigos.Count +
+                     " expedientes. Agregar los de prueba igual? (S/N): ").ToUpper() != "S")
+                return;
+        }
+        AgregarExpediente(GenerarCodigo(), "18/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "CONTRATO DE SEPARACION", 13000.0, "ATENDIDO", "MESA DE PARTES");
+        AgregarExpediente(GenerarCodigo(), "19/08/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500.0, "RECIBIDO", "MESA DE PARTES");
+        AgregarExpediente(GenerarCodigo(), "20/08/2026", "09876543", "Ana Lucia Chavez", "998877665", "VERDE MAR", "MZ B - LT 21", "MINUTA DE COMPRA VENTA", 24000.0, "EN REVISION", "AREA LEGAL");
+        AgregarExpediente(GenerarCodigo(), "21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200.0, "ATENDIDO", "CAJA");
+        AgregarExpediente(GenerarCodigo(), "22/08/2026", "60123456", "Jorge Miranda Silva", "955443322", "CALIZA", "MZ D - LT 08", "COPIA DE DNI", 500.0, "OBSERVADO", "MESA DE PARTES");
+        AgregarExpediente(GenerarCodigo(), "25/08/2026", "31245678", "Rosa Guzman Polo", "976543210", "NURA", "MZ E - LT 15", "CONTRATO DE SEPARACION", 18500.0, "RECIBIDO", "MESA DE PARTES");
+        AgregarExpediente(GenerarCodigo(), "26/08/2026", "80654321", "Pedro Alvarado Ruiz", "934567890", "MORELIA", "MZ C - LT 09", "MINUTA DE COMPRA VENTA", 31000.0, "EN REVISION", "AREA LEGAL");
+        AgregarExpediente(GenerarCodigo(), "27/08/2026", "27418596", "Lucia Flores Chavez", "921098765", "HUANCHACO", "MZ A - LT 30", "SOLICITUD DE DESISTIMIENTO", 13000.0, "OBSERVADO", "GERENCIA");
+        Console.WriteLine("\n [OK] Se agregaron 8 expedientes de prueba.");
+    }
+
+    static void MostrarMenu()
+    {
+        Console.WriteLine("\n" + Linea('=', 62));
+        Console.WriteLine("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO");
+        Console.WriteLine(Linea('=', 62));
+        Console.WriteLine("   1) Registrar un expediente nuevo");
+        Console.WriteLine("   2) Listar todos los expedientes");
+        Console.WriteLine("   3) Buscar expediente (nombre, DNI, lote o codigo)");
+        Console.WriteLine("   4) Buscar por codigo exacto  [busqueda binaria]");
+        Console.WriteLine("   5) Ordenar expedientes");
+        Console.WriteLine("   6) Cambiar el estado de un expediente");
+        Console.WriteLine("   7) Reporte por proyecto y estado  [matriz]");
+        Console.WriteLine("   8) Comparar los dos algoritmos de busqueda");
+        Console.WriteLine("   9) Resumen por cliente  [arreglos paralelos]");
+        Console.WriteLine("  10) Cargar datos de prueba");
+        Console.WriteLine("   0) Salir");
+        Console.WriteLine(Linea('=', 62));
+    }
+
+    // El menu se repite hasta que el usuario elige 0
+    static void Main()
+    {
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
+
+        while (true)
+        {
+            MostrarMenu();
+            string opcion = Leer(" Elija una opcion: ");
+            switch (opcion)
             {
-                case 1:
-                    bool cancelado = false;
-                    if (n >= 200)
-                    {
-                        Console.WriteLine(" [!] Se alcanzo el maximo de 200 expedientes.");
-                        cancelado = true;
-                    }
-                    string dni = "", nombre = "", tel = "", lote = "", monto = "", fecha = "", responsable = "";
-                    string mensaje = "";
-                    bool valido = false;
-
-                    if (!cancelado)
-                    {
-                        Console.WriteLine(" REGISTRO DE NUEVO EXPEDIENTE   (escriba X para cancelar)");
-                        do
-                        {
-                            Console.Write(" DNI del cliente (8 digitos): ");
-                            dni = Console.ReadLine();
-                            cancelado = dni.ToUpper() == "X";
-                            valido = cancelado;
-                            if (!cancelado)
-                            {
-                                valido = ValidarDni(dni, ref mensaje);
-                                if (!valido) Console.WriteLine("   [!] " + mensaje);
-                            }
-                        } while (!valido);
-                    }
-
-                    if (!cancelado)
-                    {
-                        do
-                        {
-                            Console.Write(" Nombres y apellidos: ");
-                            nombre = Console.ReadLine();
-                            cancelado = nombre.ToUpper() == "X";
-                            valido = cancelado;
-                            if (!cancelado)
-                            {
-                                valido = ValidarNombre(nombre, ref mensaje);
-                                if (!valido) Console.WriteLine("   [!] " + mensaje);
-                            }
-                        } while (!valido);
-                    }
-
-                    if (!cancelado)
-                    {
-                        do
-                        {
-                            Console.Write(" Celular (9 digitos): ");
-                            tel = Console.ReadLine();
-                            cancelado = tel.ToUpper() == "X";
-                            valido = cancelado;
-                            if (!cancelado)
-                            {
-                                valido = ValidarTelefono(tel, ref mensaje);
-                                if (!valido) Console.WriteLine("   [!] " + mensaje);
-                            }
-                        } while (!valido);
-                    }
-
-                    int p = 0;
-                    if (!cancelado)
-                    {
-                        p = ElegirOpcion("Proyecto:", catProyectos, 6);
-                        cancelado = (p == 0);
-                    }
-
-                    int t = 0;
-                    if (!cancelado)
-                    {
-                        Console.Write(" Lote (ejemplo: MZ A - LT 12): ");
-                        lote = Console.ReadLine();
-                        lote = LimpiarSeparador(lote.ToUpper());
-                        if (lote.Length == 0) lote = "SIN ASIGNAR";
-                        t = ElegirOpcion("Tipo de documento presentado:", catTipos, 5);
-                        cancelado = (t == 0);
-                    }
-
-                    if (!cancelado)
-                    {
-                        int posDup = PosicionDuplicado(dnis, lotes, tipos, estados, n, dni, lote, catTipos[t]);
-                        if (posDup > 0)
-                        {
-                            Console.WriteLine(" [!] ATENCION: ya existe un expediente abierto con esos datos:");
-                            Console.WriteLine("     " + codigos[posDup] + " | " + nombres[posDup] + " | " + estados[posDup]);
-                            Console.Write(" Desea registrarlo igual? (S/N): ");
-                            string resp = Console.ReadLine();
-                            cancelado = resp.ToUpper() != "S";
-                        }
-                    }
-
-                    if (!cancelado)
-                    {
-                        do
-                        {
-                            Console.Write(" Monto de la operacion en soles: ");
-                            monto = Console.ReadLine();
-                            cancelado = monto.ToUpper() == "X";
-                            valido = cancelado;
-                            if (!cancelado)
-                            {
-                                valido = ValidarMonto(monto, ref mensaje);
-                                if (!valido) Console.WriteLine("   [!] " + mensaje);
-                            }
-                        } while (!valido);
-                    }
-
-                    if (!cancelado)
-                    {
-                        do
-                        {
-                            Console.Write(" Fecha dd/mm/aaaa [Enter = hoy]: ");
-                            fecha = Console.ReadLine();
-                            if (fecha.Length == 0) fecha = FechaDeHoy();
-                            cancelado = fecha.ToUpper() == "X";
-                            valido = cancelado;
-                            if (!cancelado)
-                            {
-                                valido = ValidarFecha(fecha, ref mensaje);
-                                if (!valido) Console.WriteLine("   [!] " + mensaje);
-                            }
-                        } while (!valido);
-                    }
-
-                    if (cancelado)
-                    {
-                        Console.WriteLine(" Registro cancelado.");
-                    }
-                    else
-                    {
-                        Console.Write(" Responsable que recibe [Enter = MESA DE PARTES]: ");
-                        responsable = Console.ReadLine();
-                        responsable = LimpiarSeparador(responsable.ToUpper());
-                        if (responsable.Length == 0) responsable = "MESA DE PARTES";
-                        string codigo = GenerarCodigo(codigos, n);
-                        double monVal = double.Parse(LimpiarMonto(monto), System.Globalization.CultureInfo.InvariantCulture);
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, codigo, fecha, dni, nombre, tel, catProyectos[p], lote, catTipos[t], monVal, "RECIBIDO", responsable);
-                        Console.WriteLine(" [OK] Expediente registrado con el codigo: " + codigo);
-                    }
-                    break;
-
-                case 2:
-                    if (HayExpedientes(n))
-                    {
-                        TodasLasPosiciones(orden, n);
-                        MostrarTabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados);
-                    }
-                    break;
-
-                case 3:
-                    Console.Write(" Escriba nombre, DNI, lote, proyecto o codigo: ");
-                    texto = Console.ReadLine();
-                    if (texto.Length == 0)
-                    {
-                        Console.WriteLine(" [!] No escribio nada que buscar.");
-                    }
-                    else
-                    {
-                        int totalBusqueda = 0, compLineal = 0;
-                        BusquedaLineal(codigos, dnis, nombres, lotes, proyectos, n, texto, encontrados, ref totalBusqueda, ref compLineal);
-                        if (totalBusqueda == 0)
-                        {
-                            Console.WriteLine(" No se encontro ningun expediente con: " + texto);
-                        }
-                        else
-                        {
-                            MostrarTabla(encontrados, totalBusqueda, codigos, fechas, dnis, nombres, proyectos, montos, estados);
-                            if (totalBusqueda == 1)
-                            {
-                                MostrarFicha(encontrados[1], codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables);
-                            }
-                        }
-                        Console.WriteLine(" [Metrica] Busqueda lineal: " + compLineal + " comparaciones.");
-                    }
-                    break;
-
-                case 4:
-                    if (HayExpedientes(n))
-                    {
-                        Console.Write(" Codigo exacto (ejemplo EXP-2026-0001): ");
-                        string codBin = Console.ReadLine();
-                        ArmarClaves(claves, n, 1, codigos, fechas, nombres, proyectos, montos);
-                        int compOrden = 0, movs = 0;
-                        OrdenarBurbuja(orden, claves, n, true, ref compOrden, ref movs);
-                        int compBin = 0;
-                        int posFound = BusquedaBinaria(codigos, orden, n, codBin, ref compBin);
-                        if (posFound == 0)
-                        {
-                            Console.WriteLine(" No existe el expediente " + codBin.ToUpper() + ".");
-                        }
-                        else
-                        {
-                            MostrarFicha(posFound, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables);
-                        }
-                        Console.WriteLine(" [Metrica] Ordenamiento previo: " + compOrden + " comparaciones.");
-                        Console.WriteLine(" [Metrica] Busqueda binaria   : " + compBin + " comparaciones.");
-                    }
-                    break;
-
-                case 5:
-                    if (HayExpedientes(n))
-                    {
-                        Console.WriteLine(" Ordenar por: 1) Codigo  2) Fecha  3) Cliente  4) Monto  5) Proyecto");
-                        Console.Write(" Numero: ");
-                        texto = Console.ReadLine();
-                        int criterio = 0;
-                        if (SoloDigitos(texto)) criterio = int.Parse(texto);
-                        if (criterio < 1 || criterio > 5)
-                        {
-                            Console.WriteLine(" [!] Opcion no valida.");
-                        }
-                        else
-                        {
-                            Console.Write(" Ascendente (A) o descendente (D)? [A]: ");
-                            texto = Console.ReadLine();
-                            bool asc = texto.ToUpper() != "D";
-                            Console.Write(" Algoritmo: 1) Burbuja  2) Insercion [1]: ");
-                            texto = Console.ReadLine();
-                            ArmarClaves(claves, n, criterio, codigos, fechas, nombres, proyectos, montos);
-                            int comp = 0, mov = 0;
-                            if (texto == "2")
-                            {
-                                OrdenarInsercion(orden, claves, n, asc, ref comp, ref mov);
-                                MostrarTabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados);
-                                Console.WriteLine(" [Metrica] INSERCION: " + comp + " comparaciones y " + mov + " desplazamientos.");
-                            }
-                            else
-                            {
-                                OrdenarBurbuja(orden, claves, n, asc, ref comp, ref mov);
-                                MostrarTabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados);
-                                Console.WriteLine(" [Metrica] BURBUJA: " + comp + " comparaciones y " + mov + " intercambios.");
-                            }
-                        }
-                    }
-                    break;
-
-                case 6:
-                    if (HayExpedientes(n))
-                    {
-                        Console.Write(" Codigo del expediente: ");
-                        string codEst = Console.ReadLine();
-                        int posEst = PosicionPorCodigo(codigos, n, codEst);
-                        if (posEst == 0)
-                        {
-                            Console.WriteLine(" [!] No existe el expediente " + codEst.ToUpper() + ".");
-                        }
-                        else
-                        {
-                            Console.WriteLine(" Estado actual: " + estados[posEst]);
-                            int idxEst = ElegirOpcion("Nuevo estado:", catEstados, 4);
-                            if (idxEst > 0)
-                            {
-                                if (catEstados[idxEst] == estados[posEst])
-                                {
-                                    Console.WriteLine(" [!] El expediente ya esta en estado " + catEstados[idxEst] + ".");
-                                }
-                                else
-                                {
-                                    estados[posEst] = catEstados[idxEst];
-                                    Console.WriteLine(" [OK] El expediente " + codigos[posEst] + " ahora esta en estado: " + catEstados[idxEst]);
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-                case 7:
-                    if (HayExpedientes(n))
-                    {
-                        ReporteProyectoEstado(proyectos, estados, n, catProyectos, catEstados);
-                        ReporteMontos(montos, estados, n);
-                    }
-                    break;
-
-                case 8:
-                    if (HayExpedientes(n))
-                    {
-                        Console.Write(" Codigo a buscar con ambos algoritmos: ");
-                        string codComp = Console.ReadLine();
-                        int totL = 0, compL = 0;
-                        BusquedaLineal(codigos, dnis, nombres, lotes, proyectos, n, codComp, encontrados, ref totL, ref compL);
-                        ArmarClaves(claves, n, 1, codigos, fechas, nombres, proyectos, montos);
-                        int compOrd = 0, movOrd = 0;
-                        OrdenarBurbuja(orden, claves, n, true, ref compOrd, ref movOrd);
-                        int compB = 0;
-                        BusquedaBinaria(codigos, orden, n, codComp, ref compB);
-                        Console.WriteLine();
-                        Console.WriteLine(" COMPARACION DE ALTERNATIVAS ALGORITMICAS");
-                        Console.WriteLine(" Expedientes en los arreglos : " + n);
-                        Console.WriteLine(" A - Busqueda lineal : " + compL + " comparaciones (no requiere orden, admite busqueda parcial)");
-                        Console.WriteLine(" B - Busqueda binaria: " + compB + " comparaciones (+ " + compOrd + " para ordenar antes, solo codigo exacto)");
-                        Console.WriteLine(" CONCLUSION: binaria para el codigo exacto, lineal para nombre, DNI y lote.");
-                    }
-                    break;
-
-                case 9:
-                    if (HayExpedientes(n))
-                    {
-                        ResumenPorCliente(dnis, nombres, montos, n);
-                    }
-                    break;
-
-                case 10:
-                    if (n + 8 > 200)
-                    {
-                        Console.WriteLine(" [!] No hay espacio para los datos de prueba.");
-                    }
-                    else
-                    {
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "18/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "CONTRATO DE SEPARACION", 13000, "ATENDIDO", "MESA DE PARTES");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "19/08/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500, "RECIBIDO", "MESA DE PARTES");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "20/08/2026", "09876543", "Ana Lucia Chavez", "998877665", "VERDE MAR", "MZ B - LT 21", "MINUTA DE COMPRA VENTA", 24000, "EN REVISION", "AREA LEGAL");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200, "ATENDIDO", "CAJA");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "22/08/2026", "60123456", "Jorge Miranda Silva", "955443322", "CALIZA", "MZ D - LT 08", "COPIA DE DNI", 500, "OBSERVADO", "MESA DE PARTES");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "25/08/2026", "31245678", "Rosa Guzman Polo", "976543210", "NURA", "MZ E - LT 15", "CONTRATO DE SEPARACION", 18500, "RECIBIDO", "MESA DE PARTES");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "26/08/2026", "80654321", "Pedro Alvarado Ruiz", "934567890", "MORELIA", "MZ C - LT 09", "MINUTA DE COMPRA VENTA", 31000, "EN REVISION", "AREA LEGAL");
-                        AgregarExpediente(ref n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, GenerarCodigo(codigos, n), "27/08/2026", "27418596", "Lucia Flores Chavez", "921098765", "HUANCHACO", "MZ A - LT 30", "SOLICITUD DE DESISTIMIENTO", 13000, "OBSERVADO", "GERENCIA");
-                        Console.WriteLine(" [OK] Se agregaron 8 expedientes de prueba.");
-                    }
-                    break;
-
-                case 0:
-                    Console.WriteLine(" Sistema cerrado. Hasta luego.");
-                    salir = true;
-                    break;
-
+                case "1": OpcionRegistrar(); break;
+                case "2": OpcionListar(); break;
+                case "3": OpcionBuscar(); break;
+                case "4": OpcionBuscarBinaria(); break;
+                case "5": OpcionOrdenar(); break;
+                case "6": OpcionCambiarEstado(); break;
+                case "7": OpcionReporte(); break;
+                case "8": OpcionComparar(); break;
+                case "9": OpcionResumenClientes(); break;
+                case "10": OpcionDatosPrueba(); break;
+                case "0":
+                    Console.WriteLine("\n Sistema cerrado. Los datos se guardan en archivo a partir del tema 5.\n");
+                    return;
                 default:
-                    Console.WriteLine(" [!] Opcion no valida. Elija un numero del menu.");
+                    Console.WriteLine("\n [!] Opcion no valida. Elija un numero del menu.");
                     break;
             }
-        } while (!salir);
+        }
     }
 }

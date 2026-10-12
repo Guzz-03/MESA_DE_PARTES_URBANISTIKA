@@ -105,8 +105,7 @@ class Program
         return "S/ " + monto.ToString("N2", CULTURA);
     }
 
-    // Busca 'buscado' dentro de 'texto' caracter por caracter (algoritmo de
-    // subcadena) en lugar de usar Contains, para evidenciar el manejo de cadenas.
+    // Busca 'buscado' dentro de 'texto' caracter por caracter (algoritmo de subcadena) en lugar de usar Contains, para evidenciar el manejo de cadenas.
     static bool ContieneTexto(string texto, string buscado)
     {
         texto = Normalizar(texto);
@@ -260,6 +259,8 @@ class Program
     // -----------------------------------------------------------------------------
     // ENTRADA DE DATOS
     // -----------------------------------------------------------------------------
+    // Lee una linea; si se cierra la entrada (Ctrl+Z / fin de archivo) termina.
+
 
     // Lee una linea; si se cierra la entrada (Ctrl+Z / fin de archivo) termina.
     static string Leer(string mensaje)

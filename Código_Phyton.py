@@ -1,786 +1,943 @@
-import datetime
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+ MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO
+ Version del TEMA 4: cadenas de caracteres y arreglos paralelos
 
-# -----------------------------------------------------------------------------
-# VALIDACIONES Y CADENAS
-# -----------------------------------------------------------------------------
+ Curso  : Fundamentos de Programacion - CIIN1205P
+ Docente: Humberto Pedro Jimenez Jara
+ Grupo 1: Alvarado Valiente Valeria / Flores Chavez Anahi /
+          Guzman Polo Carol Jacqueline / Hernandez Vasquez Andy Rafael /
+          Valderrama Rosado Aldahir Obved
+ UPN - Trujillo, 2026
 
-def solo_digitos(texto):
-    if len(texto) == 0:
+ Ejecutar con:  py main.py
+===============================================================================
+"""
+
+from datetime import datetime
+
+
+# =============================================================================
+# ARREGLOS PARALELOS DE EXPEDIENTES (TEMA 4)
+# =============================================================================
+# Un expediente tiene 11 datos repartidos . la posicion i corresponde al mismo expediente, #ejemplo:
+#   codigo  = "EXP-2026-0001"      nombre  = "Maria Rojas Delgado"
+#   fecha   = "18/08/2026"         monto   = 13000.0
+#   dni    = "45781236"           estado  = "ATENDIDO"
+
+
+codigos = []
+fechas = []
+dnis = []
+nombres = []
+telefonos = []
+proyectos = []
+lotes = []
+tipos_documento = []
+montos = []
+estados = []
+responsables = []
+
+# Catalogo de Urbanistika
+ESTADOS = ["RECIBIDO", "EN REVISION", "OBSERVADO", "ATENDIDO"]
+PROYECTOS = ["HUANCHACO", "MORELIA", "VERDE MAR", "CALIZA", "NURA", "OTRO"]
+TIPOS_DOCUMENTO = ["CONTRATO DE SEPARACION", "MINUTA DE COMPRA VENTA",
+                   "VOUCHER DE PAGO", "COPIA DE DNI", "SOLICITUD DE DESISTIMIENTO"]
+
+# Tablas para manipular cadenas
+LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÜÑ "
+CON_TILDE = "ÁÉÍÓÚÜÑáéíóúüñ"
+SIN_TILDE = "AEIOUUNAEIOUUN"
+
+# =============================================================================
+# CADENAS DE CARACTERES (TEMA 4)
+# =============================================================================
+
+def solo_digitos(cadena):
+    """Devuelve True si la cadena tiene unicamente digitos del 0 al 9."""
+    if len(cadena) == 0:
         return False
-    ok = True
-    for c in texto:
-        if c < "0" or c > "9":
-            ok = False
-    return ok
+    for caracter in cadena:
+        if caracter < "0" or caracter > "9":
+            return False
+    return True
+
+
+def quitar_tildes(texto):
+    """Reemplaza las vocales con tilde por su equivalente sin tilde."""
+    resultado = ""
+    for caracter in texto:
+        posicion = CON_TILDE.find(caracter)
+        if posicion == -1:
+            resultado = resultado + caracter
+        else:
+            resultado = resultado + SIN_TILDE[posicion]
+    return resultado
+
+
+def normalizar(texto):
+    """MAYUSCULAS, sin tildes y sin espacios sobrantes: 'José ' -> 'JOSE'."""
+    return quitar_tildes(texto.strip().upper())
+
+
+def formato_nombre(texto):
+    """Primera letra de cada palabra en mayuscula: 'mARIA rojas' -> 'Maria Rojas'."""
+    palabras = texto.strip().split()
+    resultado = ""
+    for palabra in palabras:
+        if len(resultado) > 0:
+            resultado = resultado + " "
+        resultado = resultado + palabra[0].upper() + palabra[1:].lower()
+    return resultado
+
 
 def limpiar_monto(monto):
-    limpio = ""
-    for c in monto:
-        if c != "," and c != " ":
-            limpio += c
-    return limpio
+    """Quita espacios y separadores de miles: '13,000.50' -> '13000.50'."""
+    return monto.strip().replace(",", "")
 
-def limpiar_separador(texto):
-    limpio = ""
-    for c in texto:
-        if c == "|":
-            limpio += " "
-        else:
-            limpio += c
-    return limpio
 
-def contar_palabras(texto):
-    total = 0
-    dentro = False
-    for c in texto:
-        if c == " ":
-            dentro = False
-        else:
-            if not dentro:
-                total += 1
-            dentro = True
-    return total
+def formato_soles(monto):
+    """13000 -> 'S/ 13,000.00'."""
+    return "S/ " + "{:,.2f}".format(monto)
 
+
+def contiene_texto(texto, buscado):
+    """Devuelve True si 'buscado' aparece dentro de 'texto'.
+
+    Se recorre caracter por caracter (algoritmo de subcadena) en lugar de
+    usar el operador 'in', para evidenciar el manejo de cadenas.
+    """
+    texto = normalizar(texto)
+    buscado = normalizar(buscado)
+    if len(buscado) == 0 or len(buscado) > len(texto):
+        return False
+
+    for inicio in range(len(texto) - len(buscado) + 1):
+        coincide = True
+        for desplazamiento in range(len(buscado)):
+            if texto[inicio + desplazamiento] != buscado[desplazamiento]:
+                coincide = False
+                break
+        if coincide:
+            return True
+    return False
+
+
+# --- Descomponer cadenas: separar un texto en sus partes --------------------
+
+def descomponer_codigo(codigo):
+    """'EXP-2026-0007' -> ['EXP', '2026', '0007'] (se separa por '-')."""
+    return codigo.split("-")
+
+
+def descomponer_fecha(fecha):
+    """'18/08/2026' -> ['18', '08', '2026'] (se separa por '/')."""
+    return fecha.split("/")
+
+
+def descomponer_lote(lote):
+    """'MZ A - LT 12' -> ['A', '12'].
+
+    Se separa por '-' y a cada parte se le quita la palabra MZ o LT.
+    Si el lote no tiene ese formato se devuelve tal cual.
+    """
+    partes = lote.split("-")
+    if len(partes) != 2:
+        return [lote, ""]
+    manzana = partes[0].strip()
+    numero = partes[1].strip()
+    if manzana.startswith("MZ"):
+        manzana = manzana[2:].strip()
+    if numero.startswith("LT"):
+        numero = numero[2:].strip()
+    return [manzana, numero]
+
+
+def fecha_ordenable(fecha):
+    """'dd/mm/aaaa' -> 'aaaammdd' para que el orden de texto sea cronologico."""
+    partes = descomponer_fecha(fecha)
+    return partes[2] + partes[1] + partes[0]
+
+
+# --- Validaciones: devuelven una tupla (es_valido, mensaje) -----------------
+
+# Función para verificar que el DNI cumpla con los 8 dígitos requeridos
 def validar_dni(dni):
+    """El DNI peruano tiene exactamente 8 digitos."""
     if len(dni) != 8:
         return False, "El DNI debe tener exactamente 8 digitos."
     if not solo_digitos(dni):
         return False, "El DNI solo puede contener numeros."
-    return True, ""
+    return True, "OK"
 
-def validar_telefono(tel):
-    if len(tel) != 9:
+
+def validar_telefono(telefono):
+    """El celular peruano tiene 9 digitos y empieza con 9."""
+    if len(telefono) != 9:
         return False, "El celular debe tener exactamente 9 digitos."
-    if not solo_digitos(tel):
+    if not solo_digitos(telefono):
         return False, "El celular solo puede contener numeros."
-    if tel[0] != "9":
+    if telefono[0] != "9":
         return False, "El celular debe empezar con 9."
-    return True, ""
+    return True, "OK"
+
 
 def validar_nombre(nombre):
+    """Al menos 5 letras, solo letras y espacios, y nombre + apellido."""
     if len(nombre) < 5:
         return False, "El nombre debe tener al menos 5 caracteres."
-    revisado = nombre.upper()
-    ok = True
-    for c in revisado:
-        if (c < "A" or c > "Z") and c != " ":
-            ok = False
-    if not ok:
-        return False, "El nombre solo puede contener letras y espacios."
-    if contar_palabras(nombre) < 2:
+    for caracter in normalizar(nombre):
+        if LETRAS.find(caracter) == -1:
+            return False, "El nombre solo puede contener letras y espacios."
+    if len(nombre.split()) < 2:
         return False, "Ingrese nombre y apellido."
-    return True, ""
+    return True, "OK"
 
-def validar_monto(texto):
-    monto = limpiar_monto(texto)
-    puntos = 0
-    digitos = 0
+
+def validar_monto(monto):
+    """Un numero mayor que cero, con un punto decimal como maximo."""
+    monto = limpiar_monto(monto)
     if len(monto) == 0:
         return False, "El monto no puede estar vacio."
-    ok = True
-    for c in monto:
-        if c == ".":
-            puntos += 1
+    puntos = 0
+    digitos = 0
+    for caracter in monto:
+        if caracter == ".":
+            puntos = puntos + 1
+        elif caracter < "0" or caracter > "9":
+            return False, "El monto solo admite numeros y un punto decimal."
         else:
-            if c < "0" or c > "9":
-                ok = False
-            else:
-                digitos += 1
-    if not ok:
-        return False, "El monto solo admite numeros y un punto decimal."
+            digitos = digitos + 1
     if puntos > 1:
         return False, "El monto tiene mas de un punto decimal."
     if digitos == 0:
         return False, "El monto debe tener al menos un numero."
     if float(monto) <= 0:
         return False, "El monto debe ser mayor que cero."
-    return True, ""
+    return True, "OK"
+
 
 def validar_fecha(fecha):
-    if len(fecha) != 10:
+    """Valida dd/mm/aaaa descomponiendo la cadena, incluido el anio bisiesto."""
+    if len(fecha) != 10 or fecha[2] != "/" or fecha[5] != "/":
         return False, "La fecha debe tener el formato dd/mm/aaaa."
-    if fecha[2] != "/" or fecha[5] != "/":
-        return False, "La fecha debe usar / como separador: dd/mm/aaaa."
-    part_dia = fecha[0:2]
-    part_mes = fecha[3:5]
-    part_anio = fecha[6:10]
-    if not solo_digitos(part_dia) or not solo_digitos(part_mes) or not solo_digitos(part_anio):
-        return False, "La fecha solo puede contener numeros y /."
-    dia = int(part_dia)
-    mes = int(part_mes)
-    anio = int(part_anio)
+
+    partes = descomponer_fecha(fecha)
+    if not solo_digitos(partes[0]) or not solo_digitos(partes[1]) or not solo_digitos(partes[2]):
+        return False, "La fecha solo puede contener numeros y '/'."
+
+    dia = int(partes[0])
+    mes = int(partes[1])
+    anio = int(partes[2])
+
     if mes < 1 or mes > 12:
         return False, "El mes debe estar entre 01 y 12."
     if anio < 2020 or anio > 2030:
         return False, "El anio debe estar entre 2020 y 2030."
-    
-    if mes == 2:
-        tope = 28
-    elif mes in [4, 6, 9, 11]:
-        tope = 30
-    else:
-        tope = 31
-    
+
+    dias_por_mes = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    tope = dias_por_mes[mes - 1]
     bisiesto = (anio % 4 == 0 and anio % 100 != 0) or (anio % 400 == 0)
     if mes == 2 and bisiesto:
         tope = 29
     if dia < 1 or dia > tope:
-        return False, f"El dia no existe para ese mes (maximo {tope})."
-    return True, ""
+        return False, "El dia no existe para ese mes (maximo " + str(tope) + ")."
+    return True, "OK"
 
-def rellenar_ceros(numero, largo):
-    texto = str(int(numero))
-    while len(texto) < largo:
-        texto = "0" + texto
-    return texto
 
-def fecha_de_hoy():
-    now = datetime.datetime.now()
-    t = f"{now.year:04d}{now.month:02d}{now.day:02d}"
-    return f"{t[6:8]}/{t[4:6]}/{t[0:4]}"
-
-def fecha_actual_int():
-    now = datetime.datetime.now()
-    return int(f"{now.year:04d}{now.month:02d}{now.day:02d}")
-
-def contiene_texto(texto, buscado):
-    texto = texto.upper()
-    buscado = buscado.upper()
-    ok = False
-    if len(buscado) > 0 and len(buscado) <= len(texto):
-        inicio = 1
-        while not ok and inicio <= len(texto) - len(buscado) + 1:
-            coincide = True
-            k = 1
-            while coincide and k <= len(buscado):
-                if texto[inicio + k - 2] != buscado[k - 1]:
-                    coincide = False
-                k += 1
-            if coincide:
-                ok = True
-            inicio += 1
-    return ok
 # -----------------------------------------------------------------------------
 # ENTRADA DE DATOS
 # -----------------------------------------------------------------------------
 
-def elegir_opcion(titulo, opciones, total):
-    elegida = 99
+def pedir_dato(mensaje, funcion_validadora):
+    """Pide un dato y NO avanza hasta que sea valido. X = cancelar.
+
+    Recibe como parametro la funcion que valida el dato (reutilizacion).
+    """
     while True:
-        print("   ", titulo)
-        for i in range(1, total + 1):
-            print(f"     {i}) {opciones[i]}")
-        texto = input("   Numero (X = cancelar): ")
-        if texto.upper() == "X":
-            elegida = 0
-        else:
-            if solo_digitos(texto):
-                val = int(texto)
-                if 1 <= val <= total:
-                    elegida = val
-                else:
-                    print(f"   [!] La opcion debe estar entre 1 y {total}.")
-            else:
-                print("   [!] Ingrese solo el numero de la opcion.")
-        if elegida != 99:
-            break
-    return elegida
+        valor = input(mensaje).strip()
+        if valor.upper() == "X":
+            return None
+        es_valido, aviso = funcion_validadora(valor)
+        if es_valido:
+            return valor.replace("|", " ")
+        print("   [!] " + aviso + "  (escriba X para cancelar)")
 
-def hay_expedientes(n):
-    hay = n > 0
-    if not hay:
-        print("")
-        print(" [!] Todavia no hay expedientes registrados.")
-    return hay
 
-# -----------------------------------------------------------------------------
-# DESCOMPONER CADENAS
-# -----------------------------------------------------------------------------
+def elegir_opcion(titulo, opciones):
+    """Muestra un catalogo numerado y devuelve la opcion elegida (None = cancelar)."""
+    while True:
+        print("\n   " + titulo)
+        for i in range(len(opciones)):
+            print("     " + str(i + 1) + ") " + opciones[i])
+        elegida = input("   Numero (X = cancelar): ").strip()
+        if elegida.upper() == "X":
+            return None
+        if solo_digitos(elegida) and 1 <= int(elegida) <= len(opciones):
+            return opciones[int(elegida) - 1]
+        print("   [!] Elija un numero entre 1 y " + str(len(opciones)) + ".")
 
-def extraer_parte(texto, separador, numero_parte):
-    parte = ""
-    actual = 1
-    for c in texto:
-        if c == separador:
-            actual += 1
-        else:
-            if actual == numero_parte:
-                parte += c
-    return parte
 
-def recortar(texto):
-    ini = 1
-    fn = len(texto)
-    while ini <= fn and texto[ini - 1] == " ":
-        ini += 1
-    while fn >= ini and texto[fn - 1] == " ":
-        fn -= 1
-    limpio = ""
-    if ini <= fn:
-        limpio = texto[ini - 1:fn]
-    return limpio
+def hay_expedientes():
+    """Devuelve True si hay expedientes; si no, avisa al usuario."""
+    if len(codigos) == 0:
+        print("\n [!] Todavia no hay expedientes registrados.")
+        return False
+    return True
 
-def quitar_prefijo(texto, prefijo):
-    resto = texto
-    if len(texto) >= len(prefijo):
-        if texto[0:len(prefijo)] == prefijo:
-            resto = recortar(texto[len(prefijo):])
-    return resto
-
-def fecha_ordenable(fecha):
-    return extraer_parte(fecha, "/", 3) + extraer_parte(fecha, "/", 2) + extraer_parte(fecha, "/", 1)
 # -----------------------------------------------------------------------------
 # OPERACIONES SOBRE LOS ARREGLOS PARALELOS
 # -----------------------------------------------------------------------------
 
-def agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, cod, fec, dni, nom, tel, pro, lot, tip, mon, est, res):
-    n += 1
-    codigos[n] = cod
-    fechas[n] = fec
-    dnis[n] = dni
-    nombres[n] = nom
-    telefonos[n] = tel
-    proyectos[n] = pro
-    lotes[n] = lot
-    tipos[n] = tip
-    montos[n] = mon
-    estados[n] = est
-    responsables[n] = res
-    return n
+def agregar_expediente(codigo, fecha, dni, nombre, telefono, proyecto, lote,
+                       tipo, monto, estado, responsable):
+    """Inserta un expediente: un dato en la MISMA posicion de cada arreglo."""
+    codigos.append(codigo)
+    fechas.append(fecha)
+    dnis.append(dni)
+    nombres.append(nombre)
+    telefonos.append(telefono)
+    proyectos.append(proyecto)
+    lotes.append(lote)
+    tipos_documento.append(tipo)
+    montos.append(monto)
+    estados.append(estado)
+    responsables.append(responsable)
 
-def generar_codigo(codigos, n):
-    anio = str(int(fecha_actual_int() // 10000))
+
+def generar_codigo():
+    """Siguiente codigo correlativo del anio: EXP-2026-0001.
+
+    Se DESCOMPONE cada codigo existente para quedarse con el numero mas alto.
+    """
+    anio = str(datetime.now().year)
     mayor = 0
-    for i in range(1, n + 1):
-        if extraer_parte(codigos[i], "-", 2) == anio and solo_digitos(extraer_parte(codigos[i], "-", 3)):
-            num = int(extraer_parte(codigos[i], "-", 3))
-            if num > mayor:
-                mayor = num
-    return "EXP-" + anio + "-" + rellenar_ceros(mayor + 1, 4)
+    for codigo in codigos:
+        partes = descomponer_codigo(codigo)
+        if len(partes) == 3 and partes[1] == anio and solo_digitos(partes[2]):
+            if int(partes[2]) > mayor:
+                mayor = int(partes[2])
+    return "EXP-" + anio + "-" + str(mayor + 1).rjust(4, "0")
 
-def posicion_por_codigo(codigos, n, codigo):
-    posicion = 0
-    for i in range(1, n + 1):
-        if posicion == 0 and codigos[i] == codigo.upper():
-            posicion = i
-    return posicion
 
-def posicion_duplicado(dnis, lotes, tipos, estados, n, dni, lote, tipo):
-    posicion = 0
-    for i in range(1, n + 1):
-        if posicion == 0 and dnis[i] == dni and lotes[i] == lote and tipos[i] == tipo and estados[i] != "ATENDIDO":
-            posicion = i
-    return posicion
+def posicion_por_codigo(codigo):
+    """Posicion del expediente con ese codigo en los arreglos, o -1."""
+    codigo = normalizar(codigo)
+    for i in range(len(codigos)):
+        if codigos[i] == codigo:
+            return i
+    return -1
 
-def mostrar_ficha(i, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables):
-    print("")
-    print(f" FICHA DEL EXPEDIENTE {codigos[i]}   (posicion {i})")
-    print(" -----------------------------------------------------------")
-    print(f" CODIGO      : {codigos[i]}  -> anio {extraer_parte(codigos[i], '-', 2)}, correlativo {extraer_parte(codigos[i], '-', 3)}")
-    print(f" FECHA       : {fechas[i]}  -> dia {extraer_parte(fechas[i], '/', 1)}, mes {extraer_parte(fechas[i], '/', 2)}, anio {extraer_parte(fechas[i], '/', 3)}")
-    print(f" DNI         : {dnis[i]}")
-    print(f" NOMBRE      : {nombres[i]}")
-    print(f" TELEFONO    : {telefonos[i]}")
-    print(f" PROYECTO    : {proyectos[i]}")
-    manzana = quitar_prefijo(recortar(extraer_parte(lotes[i], "-", 1)), "MZ")
-    numero_lote = quitar_prefijo(recortar(extraer_parte(lotes[i], "-", 2)), "LT")
-    if len(numero_lote) > 0:
-        print(f" LOTE        : {lotes[i]}  -> manzana {manzana}, lote {numero_lote}")
+
+def posicion_duplicado(dni, lote, tipo):
+    """Posicion de un expediente ABIERTO con el mismo DNI, lote y tipo, o -1."""
+    for i in range(len(codigos)):
+        if (dnis[i] == dni and normalizar(lotes[i]) == normalizar(lote)
+                and tipos_documento[i] == tipo and estados[i] != "ATENDIDO"):
+            return i
+    return -1
+
+
+def mostrar_tabla(posiciones):
+    """Imprime los expedientes cuyas posiciones se reciben, en columnas."""
+    if len(posiciones) == 0:
+        print("\n (Sin expedientes para mostrar)")
+        return
+
+    encabezado = ("CODIGO".ljust(15) + "FECHA".ljust(12) + "DNI".ljust(10) +
+                  "CLIENTE".ljust(24) + "PROYECTO".ljust(11) +
+                  "MONTO".rjust(14) + "  ESTADO")
+    print("\n" + encabezado)
+    print("-" * len(encabezado))
+    for i in posiciones:
+        nombre = nombres[i]
+        if len(nombre) > 22:
+            nombre = nombre[0:21] + "."
+        print(codigos[i].ljust(15) + fechas[i].ljust(12) + dnis[i].ljust(10) +
+              nombre.ljust(24) + proyectos[i].ljust(11) +
+              formato_soles(montos[i]).rjust(14) + "  " + estados[i])
+    print("-" * len(encabezado))
+    print(" Total de expedientes mostrados: " + str(len(posiciones)))
+
+
+def mostrar_ficha(i):
+    """Muestra un expediente leyendo la posicion i de los 11 arreglos.
+
+    Tambien muestra el codigo, la fecha y el lote DESCOMPUESTOS en partes.
+    """
+    partes_codigo = descomponer_codigo(codigos[i])
+    partes_fecha = descomponer_fecha(fechas[i])
+    partes_lote = descomponer_lote(lotes[i])
+
+    print("\n" + "=" * 62)
+    print(" FICHA DEL EXPEDIENTE " + codigos[i] + "   (posicion " + str(i) + ")")
+    print("=" * 62)
+    print(" CODIGO      : " + codigos[i] + "  -> anio " + partes_codigo[1] +
+          ", correlativo " + partes_codigo[2])
+    print(" FECHA       : " + fechas[i] + "  -> dia " + partes_fecha[0] +
+          ", mes " + partes_fecha[1] + ", anio " + partes_fecha[2])
+    print(" DNI         : " + dnis[i])
+    print(" NOMBRE      : " + nombres[i])
+    print(" TELEFONO    : " + telefonos[i])
+    print(" PROYECTO    : " + proyectos[i])
+    if len(partes_lote[1]) > 0:
+        print(" LOTE        : " + lotes[i] + "  -> manzana " + partes_lote[0] +
+              ", lote " + partes_lote[1])
     else:
-        print(f" LOTE        : {lotes[i]}")
-    print(f" TIPO DOC    : {tipos[i]}")
-    print(f" MONTO       : S/ {montos[i]}")
-    print(f" ESTADO      : {estados[i]}")
-    print(f" RESPONSABLE : {responsables[i]}")
+        print(" LOTE        : " + lotes[i])
+    print(" TIPO DOC    : " + tipos_documento[i])
+    print(" MONTO       : " + formato_soles(montos[i]))
+    print(" ESTADO      : " + estados[i])
+    print(" RESPONSABLE : " + responsables[i])
+    print("=" * 62)
 
-def mostrar_tabla(posiciones, total, codigos, fechas, dnis, nombres, proyectos, montos, estados):
-    if total == 0:
-        print(" (Sin expedientes para mostrar)")
-    else:
-        print("")
-        print(" CODIGO        | FECHA      | DNI      | CLIENTE | PROYECTO | MONTO | ESTADO")
-        print(" ---------------------------------------------------------------------------")
-        for k in range(1, total + 1):
-            i = posiciones[k]
-            print(f" {codigos[i]} | {fechas[i]} | {dnis[i]} | {nombres[i]} | {proyectos[i]} | S/ {montos[i]} | {estados[i]}")
-        print(f" Total de expedientes mostrados: {total}")
 
-def todas_las_posiciones(orden, n):
-    for i in range(1, n + 1):
-        orden[i] = i
-# -----------------------------------------------------------------------------
-# ORDENAMIENTO
-# -----------------------------------------------------------------------------
+def todas_las_posiciones():
+    """Devuelve [0, 1, 2, ..., n-1]: el orden en que se registraron."""
+    posiciones = []
+    for i in range(len(codigos)):
+        posiciones.append(i)
+    return posiciones
 
-def armar_claves(claves, n, criterio, codigos, fechas, nombres, proyectos, montos):
-    for i in range(1, n + 1):
-        if criterio == 2:
-            claves[i] = fecha_ordenable(fechas[i])
-        elif criterio == 3:
-            claves[i] = nombres[i].upper()
-        elif criterio == 4:
-            claves[i] = rellenar_ceros(int(montos[i] * 100), 12)
-        elif criterio == 5:
-            claves[i] = proyectos[i]
+# =============================================================================
+# BUSQUEDA (TEMA 3)
+# =============================================================================
+
+def busqueda_lineal(texto_buscado):
+    """ALTERNATIVA A. Busca el texto en codigo, DNI, nombre, lote y proyecto.
+
+    Devuelve (posiciones que coinciden, numero de comparaciones).
+    """
+    encontrados = []
+    comparaciones = 0
+    for i in range(len(codigos)):
+        # Los 5 datos de la posicion i, tomados de 5 arreglos paralelos
+        campos = [codigos[i], dnis[i], nombres[i], lotes[i], proyectos[i]]
+        for campo in campos:
+            comparaciones = comparaciones + 1
+            if contiene_texto(campo, texto_buscado):
+                encontrados.append(i)
+                break
+    return encontrados, comparaciones
+
+
+def busqueda_binaria(orden, codigo):
+    """ALTERNATIVA B. 'orden' son las posiciones ordenadas por codigo.
+
+    Devuelve (posicion encontrada o -1, numero de comparaciones).
+    """
+    codigo = normalizar(codigo)
+    comparaciones = 0
+    inicio = 0
+    fin = len(orden) - 1
+    while inicio <= fin:
+        medio = (inicio + fin) // 2
+        comparaciones = comparaciones + 1
+        actual = codigos[orden[medio]]
+        if actual == codigo:
+            return orden[medio], comparaciones
+        elif actual < codigo:
+            inicio = medio + 1
         else:
-            claves[i] = codigos[i]
+            fin = medio - 1
+    return -1, comparaciones
 
-def ordenar_burbuja(orden, claves, n, ascendente):
-    todas_las_posiciones(orden, n)
+# =============================================================================
+# ORDENAMIENTO (TEMA 3)
+# =============================================================================
+
+def clave(i, criterio):
+    """Valor de la posicion i listo para comparar segun el criterio."""
+    if criterio == "MONTO":
+        return montos[i]                   # numero: 900 < 1000
+    if criterio == "FECHA":
+        return fecha_ordenable(fechas[i])  # aaaammdd: orden cronologico
+    if criterio == "CLIENTE":
+        return normalizar(nombres[i])
+    if criterio == "PROYECTO":
+        return proyectos[i]
+    return codigos[i]
+
+
+def ordenar_burbuja(criterio, ascendente):
+    """BURBUJA. Devuelve (posiciones ordenadas, comparaciones, intercambios)."""
+    orden = todas_las_posiciones()
     comparaciones = 0
     intercambios = 0
-    i = 1
-    hubo_intercambio = True
-    while i <= n - 1 and hubo_intercambio:
-        hubo_intercambio = False
-        for j in range(1, n - i + 1):
-            comparaciones += 1
-            if ascendente:
-                desordenado = claves[orden[j]] > claves[orden[j + 1]]
-            else:
-                desordenado = claves[orden[j]] < claves[orden[j + 1]]
-            if desordenado:
-                temporal = orden[j]
-                orden[j] = orden[j + 1]
-                orden[j + 1] = temporal
-                intercambios += 1
-                hubo_intercambio = True
-        i += 1
-    return comparaciones, intercambios
+    total = len(orden)
 
-def ordenar_insercion(orden, claves, n, ascendente):
-    todas_las_posiciones(orden, n)
+    for i in range(total - 1):
+        hubo_intercambio = False
+        for j in range(total - 1 - i):
+            comparaciones = comparaciones + 1
+            izquierda = clave(orden[j], criterio)
+            derecha = clave(orden[j + 1], criterio)
+            if ascendente:
+                desordenado = izquierda > derecha
+            else:
+                desordenado = izquierda < derecha
+            if desordenado:
+                orden[j], orden[j + 1] = orden[j + 1], orden[j]
+                intercambios = intercambios + 1
+                hubo_intercambio = True
+        if not hubo_intercambio:
+            break   # ya esta ordenado
+
+    return orden, comparaciones, intercambios
+
+
+def ordenar_insercion(criterio, ascendente):
+    """INSERCION. Devuelve (posiciones ordenadas, comparaciones, desplazamientos)."""
+    orden = todas_las_posiciones()
     comparaciones = 0
     desplazamientos = 0
-    for i in range(2, n + 1):
+
+    for i in range(1, len(orden)):
         actual = orden[i]
+        clave_actual = clave(actual, criterio)
         j = i - 1
-        debe_correrse = True
-        while j >= 1 and debe_correrse:
-            comparaciones += 1
+        while j >= 0:
+            comparaciones = comparaciones + 1
+            clave_previa = clave(orden[j], criterio)
             if ascendente:
-                debe_correrse = claves[orden[j]] > claves[actual]
+                debe_correrse = clave_previa > clave_actual
             else:
-                debe_correrse = claves[orden[j]] < claves[actual]
-            if debe_correrse:
-                orden[j + 1] = orden[j]
-                desplazamientos += 1
-                j -= 1
+                debe_correrse = clave_previa < clave_actual
+            if not debe_correrse:
+                break
+            orden[j + 1] = orden[j]
+            desplazamientos = desplazamientos + 1
+            j = j - 1
         orden[j + 1] = actual
-    return comparaciones, desplazamientos
-# -----------------------------------------------------------------------------
-# BUSQUEDA
-# -----------------------------------------------------------------------------
 
-def busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, buscado, encontrados):
-    total = 0
-    comparaciones = 0
-    for i in range(1, n + 1):
-        coincide = False
-        k = 1
-        while not coincide and k <= 5:
-            comparaciones += 1
-            if k == 1:
-                campo = codigos[i]
-            elif k == 2:
-                campo = dnis[i]
-            elif k == 3:
-                campo = nombres[i]
-            elif k == 4:
-                campo = lotes[i]
-            else:
-                campo = proyectos[i]
-            coincide = contiene_texto(campo, buscado)
-            k += 1
-        if coincide:
-            total += 1
-            encontrados[total] = i
-    return total, comparaciones
-
-def busqueda_binaria(codigos, orden, n, codigo):
-    codigo = codigo.upper()
-    posicion = 0
-    comparaciones = 0
-    ini = 1
-    fin_rango = n
-    while ini <= fin_rango and posicion == 0:
-        medio = int((ini + fin_rango) // 2)
-        comparaciones += 1
-        if codigos[orden[medio]] == codigo:
-            posicion = orden[medio]
-        else:
-            if codigos[orden[medio]] < codigo:
-                ini = medio + 1
-            else:
-                fin_rango = medio - 1
-    return posicion, comparaciones
+    return orden, comparaciones, desplazamientos
+ 
 # -----------------------------------------------------------------------------
 # REPORTES
 # -----------------------------------------------------------------------------
 
-def reporte_proyecto_estado(proyectos, estados, n, cat_proyectos, cat_estados):
-    matriz = [[0 for _ in range(5)] for _ in range(7)]
-    for k in range(1, n + 1):
-        fila = 6
-        for i in range(1, 7):
-            if cat_proyectos[i] == proyectos[k]:
+def construir_matriz_proyecto_estado():
+    """MATRIZ (tema 3): filas = proyectos, columnas = estados."""
+    matriz = []
+    for i in range(len(PROYECTOS)):
+        fila = []
+        for j in range(len(ESTADOS)):
+            fila.append(0)
+        matriz.append(fila)
+
+    for k in range(len(codigos)):
+        fila = len(PROYECTOS) - 1           # por defecto: OTRO
+        for i in range(len(PROYECTOS)):
+            if PROYECTOS[i] == proyectos[k]:
                 fila = i
-        for j in range(1, 5):
-            if cat_estados[j] == estados[k]:
-                matriz[fila][j] += 1
-    print("")
-    print(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO")
-    print(" PROYECTO | RECIBIDO | EN REVISION | OBSERVADO | ATENDIDO | TOTAL")
-    for i in range(1, 7):
+        for j in range(len(ESTADOS)):
+            if ESTADOS[j] == estados[k]:
+                matriz[fila][j] = matriz[fila][j] + 1
+    return matriz
+
+
+def mostrar_matriz(matriz):
+    encabezado = "PROYECTO".ljust(12)
+    for estado in ESTADOS:
+        encabezado = encabezado + estado.rjust(13)
+    encabezado = encabezado + "TOTAL".rjust(8)
+    print(encabezado)
+    print("-" * len(encabezado))
+
+    totales_columna = [0, 0, 0, 0]
+    for i in range(len(matriz)):
         suma_fila = 0
-        print(f" {cat_proyectos[i]}", end="")
-        for j in range(1, 5):
-            print(f" | {matriz[i][j]}", end="")
-            suma_fila += matriz[i][j]
-        print(f" | {suma_fila}")
-    print(f" TOTAL GENERAL: {n}")
+        linea = PROYECTOS[i].ljust(12)
+        for j in range(len(matriz[i])):
+            linea = linea + str(matriz[i][j]).rjust(13)
+            suma_fila = suma_fila + matriz[i][j]
+            totales_columna[j] = totales_columna[j] + matriz[i][j]
+        print(linea + str(suma_fila).rjust(8))
 
-def reporte_montos(montos, estados, n):
+    print("-" * len(encabezado))
+    linea = "TOTAL".ljust(12)
+    for total in totales_columna:
+        linea = linea + str(total).rjust(13)
+    print(linea + str(len(codigos)).rjust(8))
+
+
+def calcular_montos():
+    """Devuelve (total, promedio, mayor, menor) recorriendo el arreglo montos."""
+    if len(montos) == 0:
+        return 0.0, 0.0, 0.0, 0.0
     total = 0.0
-    mayor = montos[1]
-    menor = montos[1]
+    mayor = montos[0]
+    menor = montos[0]
+    for monto in montos:
+        total = total + monto
+        if monto > mayor:
+            mayor = monto
+        if monto < menor:
+            menor = monto
+    return total, total / len(montos), mayor, menor
+
+
+def contar_pendientes():
     pendientes = 0
-    for k in range(1, n + 1):
-        total += montos[k]
-        if montos[k] > mayor:
-            mayor = montos[k]
-        if montos[k] < menor:
-            menor = montos[k]
-        if estados[k] != "ATENDIDO":
-            pendientes += 1
-    print("")
-    print(f" Monto total registrado : S/ {total}")
-    print(f" Monto promedio         : S/ {round(total / n * 100) / 100}")
-    print(f" Operacion mas alta     : S/ {mayor}")
-    print(f" Operacion mas baja     : S/ {menor}")
-    print(f" Expedientes pendientes : {pendientes}")
+    for estado in estados:
+        if estado != "ATENDIDO":
+            pendientes = pendientes + 1
+    return pendientes
 
-def resumen_por_cliente(dnis, nombres, montos, n):
-    dnis_cliente = [""] * 201
-    nombres_cliente = [""] * 201
-    cantidades = [0] * 201
-    totales = [0.0] * 201
-    clientes = 0
 
-    for k in range(1, n + 1):
-        posicion = 0
-        for i in range(1, clientes + 1):
-            if posicion == 0 and dnis_cliente[i] == dnis[k]:
+def resumen_por_cliente():
+    """Agrupa por DNI en CUATRO ARREGLOS PARALELOS nuevos.
+
+    Devuelve (dnis_cliente, nombres_cliente, cantidades, totales): la
+    posicion i de los cuatro corresponde al mismo cliente.
+    """
+    dnis_cliente = []
+    nombres_cliente = []
+    cantidades = []
+    totales = []
+
+    for k in range(len(codigos)):
+        posicion = -1
+        for i in range(len(dnis_cliente)):
+            if dnis_cliente[i] == dnis[k]:
                 posicion = i
-        if posicion == 0:
-            clientes += 1
-            dnis_cliente[clientes] = dnis[k]
-            nombres_cliente[clientes] = nombres[k]
-            cantidades[clientes] = 1
-            totales[clientes] = montos[k]
+                break
+        if posicion == -1:
+            dnis_cliente.append(dnis[k])
+            nombres_cliente.append(nombres[k])
+            cantidades.append(1)
+            totales.append(montos[k])
         else:
-            cantidades[posicion] += 1
-            totales[posicion] += montos[k]
+            cantidades[posicion] = cantidades[posicion] + 1
+            totales[posicion] = totales[posicion] + montos[k]
 
-    for i in range(2, clientes + 1):
+    return dnis_cliente, nombres_cliente, cantidades, totales
+
+
+def ordenar_clientes_por_total(dnis_cliente, nombres_cliente, cantidades, totales):
+    """Insercion de mayor a menor total, moviendo los 4 arreglos JUNTOS.
+
+    Aqui si se mueven los datos (y no un arreglo de posiciones) para mostrar
+    la regla de oro: si solo se moviera 'totales', cada monto quedaria
+    asignado al cliente equivocado.
+    """
+    for i in range(1, len(totales)):
         dni_aux = dnis_cliente[i]
         nombre_aux = nombres_cliente[i]
         cantidad_aux = cantidades[i]
         total_aux = totales[i]
         j = i - 1
-        debe_correrse = True
-        while j >= 1 and debe_correrse:
-            if totales[j] < total_aux:
-                dnis_cliente[j + 1] = dnis_cliente[j]
-                nombres_cliente[j + 1] = nombres_cliente[j]
-                cantidades[j + 1] = cantidades[j]
-                totales[j + 1] = totales[j]
-                j -= 1
-            else:
-                debe_correrse = False
+        while j >= 0 and totales[j] < total_aux:
+            dnis_cliente[j + 1] = dnis_cliente[j]
+            nombres_cliente[j + 1] = nombres_cliente[j]
+            cantidades[j + 1] = cantidades[j]
+            totales[j + 1] = totales[j]
+            j = j - 1
         dnis_cliente[j + 1] = dni_aux
         nombres_cliente[j + 1] = nombre_aux
         cantidades[j + 1] = cantidad_aux
         totales[j + 1] = total_aux
 
-    print("")
-    print(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)")
-    print(" DNI      | CLIENTE | EXPEDIENTES | TOTAL PAGADO")
-    for i in range(1, clientes + 1):
-        print(f" {dnis_cliente[i]} | {nombres_cliente[i]} | {cantidades[i]} | S/ {totales[i]}")
-    print(f" Clientes distintos: {clientes}")
-    # =============================================================================
-# ALGORITMO PRINCIPAL
+# =============================================================================
+# OPCIONES DEL MENU
 # =============================================================================
 
+def opcion_registrar():
+    """Opcion 1: registro validado de un expediente nuevo."""
+    print("\n" + "=" * 62)
+    print(" REGISTRO DE NUEVO EXPEDIENTE   (escriba X para cancelar)")
+    print("=" * 62)
+
+    dni = pedir_dato(" DNI del cliente (8 digitos): ", validar_dni)
+    if dni is None:
+        return
+    nombre = pedir_dato(" Nombres y apellidos: ", validar_nombre)
+    if nombre is None:
+        return
+    nombre = formato_nombre(nombre)
+    telefono = pedir_dato(" Celular (9 digitos): ", validar_telefono)
+    if telefono is None:
+        return
+    proyecto = elegir_opcion("Proyecto:", PROYECTOS)
+    if proyecto is None:
+        return
+
+    lote = input(" Lote (ejemplo: MZ A - LT 12): ").strip().upper().replace("|", " ")
+    if lote == "X":
+        return
+    if len(lote) == 0:
+        lote = "SIN ASIGNAR"
+
+    tipo = elegir_opcion("Tipo de documento presentado:", TIPOS_DOCUMENTO)
+    if tipo is None:
+        return
+
+    repetido = posicion_duplicado(dni, lote, tipo)
+    if repetido != -1:
+        print("\n [!] ATENCION: ya existe un expediente abierto con esos datos:")
+        print("     " + codigos[repetido] + " | " + nombres[repetido] + " | " + estados[repetido])
+        if input(" Desea registrarlo igual? (S/N): ").strip().upper() != "S":
+            print(" Registro cancelado.")
+            return
+
+    monto = pedir_dato(" Monto de la operacion en soles: ", validar_monto)
+    if monto is None:
+        return
+    monto = round(float(limpiar_monto(monto)), 2)
+
+    hoy = datetime.now().strftime("%d/%m/%Y")
+    while True:
+        fecha = input(" Fecha dd/mm/aaaa [Enter = " + hoy + "]: ").strip()
+        if len(fecha) == 0:
+            fecha = hoy
+        if fecha.upper() == "X":
+            return
+        es_valida, aviso = validar_fecha(fecha)
+        if es_valida:
+            break
+        print("   [!] " + aviso)
+
+    responsable = input(" Responsable que recibe [Enter = MESA DE PARTES]: ").strip().upper()
+    if len(responsable) == 0:
+        responsable = "MESA DE PARTES"
+
+    codigo = generar_codigo()
+    agregar_expediente(codigo, fecha, dni, nombre, telefono, proyecto, lote,
+                       tipo, monto, "RECIBIDO", responsable)
+    print("\n [OK] Expediente registrado con el codigo: " + codigo)
+
+
+def opcion_listar():
+    """Opcion 2: todos los expedientes en el orden en que se registraron."""
+    if not hay_expedientes():
+        return
+    mostrar_tabla(todas_las_posiciones())
+    total, promedio, mayor, menor = calcular_montos()
+    print(" Monto total    : " + formato_soles(total))
+    print(" Monto promedio : " + formato_soles(promedio))
+    print(" Pendientes     : " + str(contar_pendientes()) + " de " + str(len(codigos)))
+
+
+def opcion_buscar():
+    """Opcion 3: busqueda lineal por coincidencia parcial."""
+    texto = input("\n Escriba nombre, DNI, lote, proyecto o codigo: ").strip()
+    if len(texto) == 0:
+        print(" [!] No escribio nada que buscar.")
+        return
+    encontrados, comparaciones = busqueda_lineal(texto)
+    if len(encontrados) == 0:
+        print("\n No se encontro ningun expediente con '" + texto + "'.")
+    else:
+        mostrar_tabla(encontrados)
+        if len(encontrados) == 1:
+            mostrar_ficha(encontrados[0])
+    print(" [Metrica] Busqueda lineal: " + str(comparaciones) + " comparaciones.")
+
+
+def opcion_buscar_binaria():
+    """Opcion 4: ordena por codigo y aplica busqueda binaria."""
+    if not hay_expedientes():
+        return
+    codigo = input("\n Codigo exacto (ejemplo EXP-2026-0001): ").strip()
+    if len(codigo) == 0:
+        print(" [!] No escribio ningun codigo.")
+        return
+    orden, comp_orden, _ = ordenar_burbuja("CODIGO", True)
+    posicion, comp_busq = busqueda_binaria(orden, codigo)
+    if posicion == -1:
+        print("\n No existe el expediente " + codigo.upper() + ".")
+    else:
+        mostrar_ficha(posicion)
+    print(" [Metrica] Ordenamiento previo: " + str(comp_orden) + " comparaciones.")
+    print(" [Metrica] Busqueda binaria   : " + str(comp_busq) + " comparaciones.")
+
+
+def opcion_ordenar():
+    """Opcion 5: criterio, sentido y algoritmo de ordenamiento."""
+    if not hay_expedientes():
+        return
+    print("\n Ordenar por:")
+    print("   1) Codigo    2) Fecha    3) Cliente    4) Monto    5) Proyecto")
+    criterios = {"1": "CODIGO", "2": "FECHA", "3": "CLIENTE", "4": "MONTO", "5": "PROYECTO"}
+    elegido = input(" Numero: ").strip()
+    if elegido not in criterios:
+        print(" [!] Opcion no valida.")
+        return
+    ascendente = input(" Ascendente (A) o descendente (D)? [A]: ").strip().upper() != "D"
+    print("\n Algoritmo:  1) Burbuja    2) Insercion")
+    if input(" Numero [1]: ").strip() == "2":
+        orden, comparaciones, movimientos = ordenar_insercion(criterios[elegido], ascendente)
+        detalle = "INSERCION: " + str(comparaciones) + " comparaciones y " + str(movimientos) + " desplazamientos."
+    else:
+        orden, comparaciones, movimientos = ordenar_burbuja(criterios[elegido], ascendente)
+        detalle = "BURBUJA: " + str(comparaciones) + " comparaciones y " + str(movimientos) + " intercambios."
+    mostrar_tabla(orden)
+    print(" [Metrica] " + detalle)
+
+
+def opcion_cambiar_estado():
+    """Opcion 6: se cambia el dato en la posicion i del arreglo 'estados'."""
+    if not hay_expedientes():
+        return
+    codigo = input("\n Codigo del expediente: ").strip()
+    i = posicion_por_codigo(codigo)
+    if i == -1:
+        print("\n [!] No existe el expediente " + codigo.upper() + ".")
+        return
+    print(" Estado actual: " + estados[i])
+    nuevo = elegir_opcion("Nuevo estado:", ESTADOS)
+    if nuevo is None:
+        return
+    if nuevo == estados[i]:
+        print("\n [!] El expediente ya esta en estado " + nuevo + ".")
+        return
+    estados[i] = nuevo
+    print("\n [OK] El expediente " + codigos[i] + " ahora esta en estado: " + nuevo)
+
+
+def opcion_reporte():
+    """Opcion 7: matriz proyecto x estado + indicadores de monto."""
+    if not hay_expedientes():
+        return
+    print("\n" + "=" * 62)
+    print(" REPORTE DE EXPEDIENTES POR PROYECTO Y ESTADO")
+    print("=" * 62)
+    mostrar_matriz(construir_matriz_proyecto_estado())
+    total, promedio, mayor, menor = calcular_montos()
+    print("\n Monto total registrado : " + formato_soles(total))
+    print(" Monto promedio         : " + formato_soles(promedio))
+    print(" Operacion mas alta     : " + formato_soles(mayor))
+    print(" Operacion mas baja     : " + formato_soles(menor))
+    print(" Expedientes pendientes : " + str(contar_pendientes()))
+
+
+def opcion_comparar():
+    """Opcion 8: mide las dos alternativas de busqueda sobre el mismo dato."""
+    if not hay_expedientes():
+        return
+    codigo = input("\n Codigo a buscar con ambos algoritmos: ").strip()
+    if len(codigo) == 0:
+        print(" [!] No escribio ningun codigo.")
+        return
+    encontrados, comp_lineal = busqueda_lineal(codigo)
+    orden, comp_orden, _ = ordenar_burbuja("CODIGO", True)
+    posicion, comp_binaria = busqueda_binaria(orden, codigo)
+
+    print("\n" + "=" * 62)
+    print(" COMPARACION DE ALTERNATIVAS ALGORITMICAS")
+    print("=" * 62)
+    print(" Expedientes en los arreglos : " + str(len(codigos)))
+    print("")
+    print(" ALTERNATIVA A - Busqueda lineal")
+    print("   Comparaciones          : " + str(comp_lineal))
+    print("   Encontro el expediente : " + ("SI" if len(encontrados) > 0 else "NO"))
+    print("   Requiere orden previo  : NO")
+    print("   Admite busqueda parcial: SI")
+    print("")
+    print(" ALTERNATIVA B - Busqueda binaria")
+    print("   Comparaciones          : " + str(comp_binaria))
+    print("   Encontro el expediente : " + ("SI" if posicion != -1 else "NO"))
+    print("   Costo de ordenar antes : " + str(comp_orden) + " comparaciones")
+    print("   Admite busqueda parcial: NO (solo coincidencia exacta)")
+    print("")
+    print(" CONCLUSION: la binaria gana en la busqueda por codigo cuando el")
+    print(" arreglo ya esta ordenado. Si hay que ordenar en cada consulta, la")
+    print(" lineal conviene con pocos registros.")
+    print("=" * 62)
+
+
+def opcion_resumen_clientes():
+    """Opcion 9: cuantos tramites y cuanto pago cada cliente."""
+    if not hay_expedientes():
+        return
+    dnis_cliente, nombres_cliente, cantidades, totales = resumen_por_cliente()
+    ordenar_clientes_por_total(dnis_cliente, nombres_cliente, cantidades, totales)
+
+    print("\n" + "=" * 62)
+    print(" RESUMEN POR CLIENTE (de mayor a menor monto pagado)")
+    print("=" * 62)
+    encabezado = "DNI".ljust(10) + "CLIENTE".ljust(24) + "EXPEDIENTES".rjust(12) + "TOTAL PAGADO".rjust(16)
+    print(encabezado)
+    print("-" * len(encabezado))
+    for i in range(len(dnis_cliente)):
+        print(dnis_cliente[i].ljust(10) + nombres_cliente[i].ljust(24) +
+              str(cantidades[i]).rjust(12) + formato_soles(totales[i]).rjust(16))
+    print("-" * len(encabezado))
+    print(" Clientes distintos: " + str(len(dnis_cliente)))
+
+
+def opcion_datos_prueba():
+    """Opcion 10: carga expedientes ficticios para demostrar el sistema."""
+    if len(codigos) > 0:
+        if input("\n Ya hay " + str(len(codigos)) +
+                 " expedientes. Agregar los de prueba igual? (S/N): ").strip().upper() != "S":
+            return
+    ejemplos = [
+        ["18/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "CONTRATO DE SEPARACION", 13000.0, "ATENDIDO", "MESA DE PARTES"],
+        ["19/08/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500.0, "RECIBIDO", "MESA DE PARTES"],
+        ["20/08/2026", "09876543", "Ana Lucia Chavez", "998877665", "VERDE MAR", "MZ B - LT 21", "MINUTA DE COMPRA VENTA", 24000.0, "EN REVISION", "AREA LEGAL"],
+        ["21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200.0, "ATENDIDO", "CAJA"],
+        ["22/08/2026", "60123456", "Jorge Miranda Silva", "955443322", "CALIZA", "MZ D - LT 08", "COPIA DE DNI", 500.0, "OBSERVADO", "MESA DE PARTES"],
+        ["25/08/2026", "31245678", "Rosa Guzman Polo", "976543210", "NURA", "MZ E - LT 15", "CONTRATO DE SEPARACION", 18500.0, "RECIBIDO", "MESA DE PARTES"],
+        ["26/08/2026", "80654321", "Pedro Alvarado Ruiz", "934567890", "MORELIA", "MZ C - LT 09", "MINUTA DE COMPRA VENTA", 31000.0, "EN REVISION", "AREA LEGAL"],
+        ["27/08/2026", "27418596", "Lucia Flores Chavez", "921098765", "HUANCHACO", "MZ A - LT 30", "SOLICITUD DE DESISTIMIENTO", 13000.0, "OBSERVADO", "GERENCIA"],
+    ]
+    for d in ejemplos:
+        agregar_expediente(generar_codigo(), d[0], d[1], d[2], d[3], d[4],
+                           d[5], d[6], d[7], d[8], d[9])
+    print("\n [OK] Se agregaron " + str(len(ejemplos)) + " expedientes de prueba.")
+
+
+def mostrar_menu():
+    print("\n" + "=" * 62)
+    print("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO")
+    print("=" * 62)
+    print("   1) Registrar un expediente nuevo")
+    print("   2) Listar todos los expedientes")
+    print("   3) Buscar expediente (nombre, DNI, lote o codigo)")
+    print("   4) Buscar por codigo exacto  [busqueda binaria]")
+    print("   5) Ordenar expedientes")
+    print("   6) Cambiar el estado de un expediente")
+    print("   7) Reporte por proyecto y estado  [matriz]")
+    print("   8) Comparar los dos algoritmos de busqueda")
+    print("   9) Resumen por cliente  [arreglos paralelos]")
+    print("  10) Cargar datos de prueba")
+    print("   0) Salir")
+    print("=" * 62)
+
+
 def main():
-    codigos = [""] * 201
-    fechas = [""] * 201
-    dnis = [""] * 201
-    nombres = [""] * 201
-    telefonos = [""] * 201
-    proyectos = [""] * 201
-    lotes = [""] * 201
-    tipos = [""] * 201
-    estados = [""] * 201
-    responsables = [""] * 201
-    montos = [0.0] * 201
-
-    cat_proyectos = [""] * 7
-    cat_estados = [""] * 5
-    cat_tipos = [""] * 6
-
-    orden = [0] * 201
-    encontrados = [0] * 201
-    claves = [""] * 201
-
-    cat_proyectos[1] = "HUANCHACO"
-    cat_proyectos[2] = "MORELIA"
-    cat_proyectos[3] = "VERDE MAR"
-    cat_proyectos[4] = "CALIZA"
-    cat_proyectos[5] = "NURA"
-    cat_proyectos[6] = "OTRO"
-
-    cat_estados[1] = "RECIBIDO"
-    cat_estados[2] = "EN REVISION"
-    cat_estados[3] = "OBSERVADO"
-    cat_estados[4] = "ATENDIDO"
-
-    cat_tipos[1] = "CONTRATO DE SEPARACION"
-    cat_tipos[2] = "MINUTA DE COMPRA VENTA"
-    cat_tipos[3] = "VOUCHER DE PAGO"
-    cat_tipos[4] = "COPIA DE DNI"
-    cat_tipos[5] = "SOLICITUD DE DESISTIMIENTO"
-
-    n = 0
-    salir = False
-
-    while not salir:
-        print("")
-        print(" ==========================================================")
-        print("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO")
-        print(" ==========================================================")
-        print("    1) Registrar un expediente nuevo")
-        print("    2) Listar todos los expedientes")
-        print("    3) Buscar expediente (nombre, DNI, lote o codigo)")
-        print("    4) Buscar por codigo exacto  [busqueda binaria]")
-        print("    5) Ordenar expedientes")
-        print("    6) Cambiar el estado de un expediente")
-        print("    7) Reporte por proyecto y estado  [matriz]")
-        print("    8) Comparar los dos algoritmos de busqueda")
-        print("    9) Resumen por cliente  [arreglos paralelos]")
-        print("   10) Cargar datos de prueba")
-        print("    0) Salir")
-        texto = input(" Elija una opcion: ")
-
-        opcion_menu = 99
-        if solo_digitos(texto):
-            opcion_menu = int(texto)
-
-        if opcion_menu == 1:
-            cancelado = False
-            if n >= 200:
-                print(" [!] Se alcanzo el maximo de 200 expedientes.")
-                cancelado = True
-            if not cancelado:
-                print(" REGISTRO DE NUEVO EXPEDIENTE   (escriba X para cancelar)")
-                while True:
-                    dni = input(" DNI del cliente (8 digitos): ")
-                    cancelado = dni.upper() == "X"
-                    valido = cancelado
-                    if not cancelado:
-                        valido, mensaje = validar_dni(dni)
-                        if not valido:
-                            print(f"   [!] {mensaje}")
-                    if valido:
-                        break
-            if not cancelado:
-                while True:
-                    nombre = input(" Nombres y apellidos: ")
-                    cancelado = nombre.upper() == "X"
-                    valido = cancelado
-                    if not cancelado:
-                        valido, mensaje = validar_nombre(nombre)
-                        if not valido:
-                            print(f"   [!] {mensaje}")
-                    if valido:
-                        break
-            if not cancelado:
-                while True:
-                    tel = input(" Celular (9 digitos): ")
-                    cancelado = tel.upper() == "X"
-                    valido = cancelado
-                    if not cancelado:
-                        valido, mensaje = validar_telefono(tel)
-                        if not valido:
-                            print(f"   [!] {mensaje}")
-                    if valido:
-                        break
-            if not cancelado:
-                p = elegir_opcion("Proyecto:", cat_proyectos, 6)
-                cancelado = p == 0
-            if not cancelado:
-                lote = input(" Lote (ejemplo: MZ A - LT 12): ")
-                lote = limpiar_separador(lote.upper())
-                if len(lote) == 0:
-                    lote = "SIN ASIGNAR"
-                t = elegir_opcion("Tipo de documento presentado:", cat_tipos, 5)
-                cancelado = t == 0
-            if not cancelado:
-                posicion = posicion_duplicado(dnis, lotes, tipos, estados, n, dni, lote, cat_tipos[t])
-                if posicion > 0:
-                    print(" [!] ATENCION: ya existe un expediente abierto con esos datos:")
-                    print(f"     {codigos[posicion]} | {nombres[posicion]} | {estados[posicion]}")
-                    resp = input(" Desea registrarlo igual? (S/N): ")
-                    cancelado = resp.upper() != "S"
-            if not cancelado:
-                while True:
-                    monto = input(" Monto de la operacion en soles: ")
-                    cancelado = monto.upper() == "X"
-                    valido = cancelado
-                    if not cancelado:
-                        valido, mensaje = validar_monto(monto)
-                        if not valido:
-                            print(f"   [!] {mensaje}")
-                    if valido:
-                        break
-            if not cancelado:
-                while True:
-                    fecha = input(" Fecha dd/mm/aaaa [Enter = hoy]: ")
-                    if len(fecha) == 0:
-                        fecha = fecha_de_hoy()
-                    cancelado = fecha.upper() == "X"
-                    valido = cancelado
-                    if not cancelado:
-                        valido, mensaje = validar_fecha(fecha)
-                        if not valido:
-                            print(f"   [!] {mensaje}")
-                    if valido:
-                        break
-            if cancelado:
-                print(" Registro cancelado.")
-            else:
-                responsable = input(" Responsable que recibe [Enter = MESA DE PARTES]: ")
-                responsable = limpiar_separador(responsable.upper())
-                if len(responsable) == 0:
-                    responsable = "MESA DE PARTES"
-                codigo = generar_codigo(codigos, n)
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, codigo, fecha, dni, nombre, tel, cat_proyectos[p], lote, cat_tipos[t], float(limpiar_monto(monto)), "RECIBIDO", responsable)
-                print(f" [OK] Expediente registrado con el codigo: {codigo}")
-
-        elif opcion_menu == 2:
-            if hay_expedientes(n):
-                todas_las_posiciones(orden, n)
-                mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
-
-        elif opcion_menu == 3:
-            texto = input(" Escriba nombre, DNI, lote, proyecto o codigo: ")
-            if len(texto) == 0:
-                print(" [!] No escribio nada que buscar.")
-            else:
-                total, comparaciones = busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, texto, encontrados)
-                if total == 0:
-                    print(f" No se encontro ningun expediente con: {texto}")
-                else:
-                    mostrar_tabla(encontrados, total, codigos, fechas, dnis, nombres, proyectos, montos, estados)
-                    if total == 1:
-                        mostrar_ficha(encontrados[1], codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables)
-                print(f" [Metrica] Busqueda lineal: {comparaciones} comparaciones.")
-
-        elif opcion_menu == 4:
-            if hay_expedientes(n):
-                codigo = input(" Codigo exacto (ejemplo EXP-2026-0001): ")
-                armar_claves(claves, n, 1, codigos, fechas, nombres, proyectos, montos)
-                comp_orden, movimientos = ordenar_burbuja(orden, claves, n, True)
-                posicion, comp_binaria = busqueda_binaria(codigos, orden, n, codigo)
-                if posicion == 0:
-                    print(f" No existe el expediente {codigo.upper()}.")
-                else:
-                    mostrar_ficha(posicion, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables)
-                print(f" [Metrica] Ordenamiento previo: {comp_orden} comparaciones.")
-                print(f" [Metrica] Busqueda binaria   : {comp_binaria} comparaciones.")
-
-        elif opcion_menu == 5:
-            if hay_expedientes(n):
-                print(" Ordenar por: 1) Codigo  2) Fecha  3) Cliente  4) Monto  5) Proyecto")
-                texto = input(" Numero: ")
-                criterio = 0
-                if solo_digitos(texto):
-                    criterio = int(texto)
-                if criterio < 1 or criterio > 5:
-                    print(" [!] Opcion no valida.")
-                else:
-                    texto = input(" Ascendente (A) o descendente (D)? [A]: ")
-                    ascendente = texto.upper() != "D"
-                    texto = input(" Algoritmo: 1) Burbuja  2) Insercion [1]: ")
-                    armar_claves(claves, n, criterio, codigos, fechas, nombres, proyectos, montos)
-                    if texto == "2":
-                        comparaciones, movimientos = ordenar_insercion(orden, claves, n, ascendente)
-                        mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
-                        print(f" [Metrica] INSERCION: {comparaciones} comparaciones y {movimientos} desplazamientos.")
-                    else:
-                        comparaciones, movimientos = ordenar_burbuja(orden, claves, n, ascendente)
-                        mostrar_tabla(orden, n, codigos, fechas, dnis, nombres, proyectos, montos, estados)
-                        print(f" [Metrica] BURBUJA: {comparaciones} comparaciones y {movimientos} intercambios.")
-
-        elif opcion_menu == 6:
-            if hay_expedientes(n):
-                codigo = input(" Codigo del expediente: ")
-                posicion = posicion_por_codigo(codigos, n, codigo)
-                if posicion == 0:
-                    print(f" [!] No existe el expediente {codigo.upper()}.")
-                else:
-                    print(f" Estado actual: {estados[posicion]}")
-                    i = elegir_opcion("Nuevo estado:", cat_estados, 4)
-                    if i > 0:
-                        if cat_estados[i] == estados[posicion]:
-                            print(f" [!] El expediente ya esta en estado {cat_estados[i]}.")
-                        else:
-                            estados[posicion] = cat_estados[i]
-                            print(f" [OK] El expediente {codigos[posicion]} ahora esta en estado: {cat_estados[i]}")
-
-        elif opcion_menu == 7:
-            if hay_expedientes(n):
-                reporte_proyecto_estado(proyectos, estados, n, cat_proyectos, cat_estados)
-                reporte_montos(montos, estados, n)
-
-        elif opcion_menu == 8:
-            if hay_expedientes(n):
-                codigo = input(" Codigo a buscar con ambos algoritmos: ")
-                _, comp_lineal = busqueda_lineal(codigos, dnis, nombres, lotes, proyectos, n, codigo, encontrados)
-                armar_claves(claves, n, 1, codigos, fechas, nombres, proyectos, montos)
-                comp_orden, movimientos = ordenar_burbuja(orden, claves, n, True)
-                _, comp_binaria = busqueda_binaria(codigos, orden, n, codigo)
-                print("")
-                print(" COMPARACION DE ALTERNATIVAS ALGORITMICAS")
-                print(f" Expedientes en los arreglos : {n}")
-                print(f" A - Busqueda lineal : {comp_lineal} comparaciones (no requiere orden, admite busqueda parcial)")
-                print(f" B - Busqueda binaria: {comp_binaria} comparaciones (+ {comp_orden} para ordenar antes, solo codigo exacto)")
-                print(" CONCLUSION: binaria para el codigo exacto, lineal para nombre, DNI y lote.")
-
-        elif opcion_menu == 9:
-            if hay_expedientes(n):
-                resumen_por_cliente(dnis, nombres, montos, n)
-
-        elif opcion_menu == 10:
-            if n + 8 > 200:
-                print(" [!] No hay espacio para los datos de prueba.")
-            else:
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "18/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "CONTRATO DE SEPARACION", 13000, "ATENDIDO", "MESA DE PARTES")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "19/08/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500, "RECIBIDO", "MESA DE PARTES")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "20/08/2026", "09876543", "Ana Lucia Chavez", "998877665", "VERDE MAR", "MZ B - LT 21", "MINUTA DE COMPRA VENTA", 24000, "EN REVISION", "AREA LEGAL")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200, "ATENDIDO", "CAJA")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "22/08/2026", "60123456", "Jorge Miranda Silva", "955443322", "CALIZA", "MZ D - LT 08", "COPIA DE DNI", 500, "OBSERVADO", "MESA DE PARTES")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "25/08/2026", "31245678", "Rosa Guzman Polo", "976543210", "NURA", "MZ E - LT 15", "CONTRATO DE SEPARACION", 18500, "RECIBIDO", "MESA DE PARTES")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "26/08/2026", "80654321", "Pedro Alvarado Ruiz", "934567890", "MORELIA", "MZ C - LT 09", "MINUTA DE COMPRA VENTA", 31000, "EN REVISION", "AREA LEGAL")
-                n = agregar_expediente(n, codigos, fechas, dnis, nombres, telefonos, proyectos, lotes, tipos, montos, estados, responsables, generar_codigo(codigos, n), "27/08/2026", "27418596", "Lucia Flores Chavez", "921098765", "HUANCHACO", "MZ A - LT 30", "SOLICITUD DE DESISTIMIENTO", 13000, "OBSERVADO", "GERENCIA")
-                print(" [OK] Se agregaron 8 expedientes de prueba.")
-
-        elif opcion_menu == 0:
-            print(" Sistema cerrado. Hasta luego.")
-            salir = True
+    """El menu se repite hasta que el usuario elige 0."""
+    while True:
+        mostrar_menu()
+        opcion = input(" Elija una opcion: ").strip()
+        if opcion == "1":
+            opcion_registrar()
+        elif opcion == "2":
+            opcion_listar()
+        elif opcion == "3":
+            opcion_buscar()
+        elif opcion == "4":
+            opcion_buscar_binaria()
+        elif opcion == "5":
+            opcion_ordenar()
+        elif opcion == "6":
+            opcion_cambiar_estado()
+        elif opcion == "7":
+            opcion_reporte()
+        elif opcion == "8":
+            opcion_comparar()
+        elif opcion == "9":
+            opcion_resumen_clientes()
+        elif opcion == "10":
+            opcion_datos_prueba()
+        elif opcion == "0":
+            print("\n Sistema cerrado. Los datos se guardan en archivo a partir del tema 5.\n")
+            break
         else:
-            print(" [!] Opcion no valida. Elija un numero del menu.")
+            print("\n [!] Opcion no valida. Elija un numero del menu.")
 
 if __name__ == "__main__":
     main()
+# Fin del programa principal - Urbanistika

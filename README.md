@@ -4,8 +4,11 @@ Sistema de mesa de partes digital para una empresa inmobiliaria,
 desarrollado como proyecto del curso Fundamentos de Programación.
 
 ## Integrantes
-- Nombre 1 (@usuario-github)
-- Nombre 2 (@usuario-github)
+- ALVARADO VALIENTE VALERIA (@alvaradvale-star)
+- FLORES CHAVEZ ANAHI (@An1t4405)
+- GUZMAN POLO CAROL JACQUELINE (@guzz-03)
+- HERNANDEZ VASQUEZ ANDY RAFAEL (@andyhernandezvasquez4-crypto)
+- VALDERRAMA ROSADO ALDAHIR OBVED (@alda-internautica)
 
 ## Estructura
 - `python/`: versión en Python (validaciones, cadenas, búsqueda, reportes)

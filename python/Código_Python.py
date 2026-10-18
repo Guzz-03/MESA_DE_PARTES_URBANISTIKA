@@ -234,7 +234,7 @@ def validar_fecha(fecha):
     if mes < 1 or mes > 12:
         return False, "El mes debe estar entre 01 y 12."
     if anio < 2020 or anio > 2030:
-        return False, "El anio debe estar entre 2020 y 2030."
+        return False, "El año debe estar entre 2020 y 2030."
 
     dias_por_mes = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     tope = dias_por_mes[mes - 1]

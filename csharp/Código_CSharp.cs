@@ -11,6 +11,12 @@ Grupo 1: Alvarado Valiente Valeria / Flores Chavez Anahi /
 UPN - Trujillo, 2026
 ===============================================================================
 */
+
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+
 class Program
 {
     // =========================================================================
@@ -558,7 +564,6 @@ class Program
         }
         return (orden, comparaciones, intercambios);
     }
-
     // INSERCION. Devuelve (posiciones ordenadas, comparaciones, desplazamientos)
     static (List<int>, int, int) OrdenarInsercion(string criterio, bool ascendente)
     {

@@ -164,7 +164,11 @@ def fecha_ordenable(fecha):
 
 
 # --- Validaciones: devuelven una tupla (es_valido, mensaje) -----------------
-
+# Cada validador devuelve dos datos:
+# True o False para indicar si la entrada es válida,
+# y un mensaje que explica el resultado de la validación.
+# Estas funciones revisan los datos antes de registrar
+# un expediente.
 # Función para verificar que el DNI cumpla con los 8 dígitos requeridos
 def validar_dni(dni):
     """El DNI peruano tiene exactamente 8 digitos."""

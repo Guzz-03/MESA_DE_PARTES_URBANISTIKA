@@ -564,7 +564,11 @@ class Program
         }
         return (orden, comparaciones, intercambios);
     }
-    // INSERCION. Devuelve (posiciones ordenadas, comparaciones, desplazamientos)
+    // INSERCION. Devuelve (posiciones ordenadas, comparaciones, desplazamientos)     
+    // El algoritmo de insercion recorre las posiciones desde la segunda.
+    // Guarda la posicion actual y la compara con las posiciones anteriores.
+    // Desplaza las posiciones que no cumplen el orden solicitado.
+    // Al final, coloca la posicion guardada en el lugar que le corresponde.
     static (List<int>, int, int) OrdenarInsercion(string criterio, bool ascendente)
     {
         List<int> orden = TodasLasPosiciones();

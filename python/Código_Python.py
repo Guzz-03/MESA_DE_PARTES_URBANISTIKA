@@ -25,7 +25,10 @@ from datetime import datetime
 #   codigo  = "EXP-2026-0001"      nombre  = "Maria Rojas Delgado"
 #   fecha   = "18/08/2026"         monto   = 13000.0
 #   dni    = "45781236"           estado  = "ATENDIDO"
-
+# Los arreglos paralelos permiten mantener relacionados los datos
+# de cada expediente mediante la misma posición en cada arreglo.
+# Por ejemplo, codigos[i], nombres[i] y estados[i] pertenecen
+# al mismo expediente cuando comparten el índice i.
 
 codigos = []
 fechas = []

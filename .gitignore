@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+expedientes.txt
+expedientes.dat
+*.tmp
+csharp/bin/
+csharp/obj/

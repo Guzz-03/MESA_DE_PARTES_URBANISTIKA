@@ -10,7 +10,9 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import archivos
+import autenticacion
 import datos
+import exportar
 from cadenas import (normalizar, formato_nombre, contiene_texto, descomponer_lote,
                      fecha_ordenable, formato_soles)
 from validaciones import (validar_dni, validar_telefono, validar_nombre,
@@ -25,6 +27,20 @@ EJEMPLOS = [
     ["EXP-2026-0002", "19/07/2026", "72451890", "Carlos Vega Torres", "912345678", "MORELIA", "MZ C - LT 04", "VOUCHER DE PAGO", 2500.5, "RECIBIDO", "MESA DE PARTES"],
     ["EXP-2026-0004", "21/08/2026", "45781236", "Maria Rojas Delgado", "987654321", "HUANCHACO", "MZ A - LT 12", "VOUCHER DE PAGO", 1200.0, "ATENDIDO", "CAJA"],
 ]
+
+
+RUTA_BD_PRUEBA = os.path.join(tempfile.mkdtemp(), "usuarios_prueba.db")
+
+
+def setUpModule():
+    """[NUEVO] Las funciones protegidas exigen sesion: se inicia una de prueba
+    con una BD temporal (nunca se toca el usuarios.db real)."""
+    autenticacion.inicializar_bd(RUTA_BD_PRUEBA)
+    autenticacion.iniciar_sesion("admin", "Admin2026!", RUTA_BD_PRUEBA)
+
+
+def tearDownModule():
+    autenticacion.cerrar_sesion()
 
 
 def cargar_ejemplos():
@@ -198,6 +214,99 @@ class PruebasArchivos(unittest.TestCase):
         self.assertTrue(r["datos_iguales"])
         self.assertEqual(r["registros"], 4)
         self.assertLess(r["bytes_bin"], 4 * 200)
+
+
+class PruebasAutenticacion(unittest.TestCase):
+    """[NUEVO] Login, sesion y decorador."""
+
+    def setUp(self):
+        self.bd = os.path.join(tempfile.mkdtemp(), "u.db")
+        autenticacion.inicializar_bd(self.bd)
+        autenticacion.cerrar_sesion()
+
+    def tearDown(self):
+        autenticacion.iniciar_sesion("admin", "Admin2026!", RUTA_BD_PRUEBA)   # restaura
+
+    def test_login_correcto(self):
+        self.assertEqual(autenticacion.iniciar_sesion("ADMIN ", "Admin2026!", self.bd), "ADMIN")
+        self.assertTrue(autenticacion.sesion_activa())
+        self.assertEqual(autenticacion.usuario_actual(), "admin")
+
+    def test_credenciales_incorrectas(self):
+        for usuario, clave in [("admin", "mala"), ("fantasma", "Admin2026!"), ("", ""), ("admin", "")]:
+            with self.assertRaises(autenticacion.ErrorAutenticacion):
+                autenticacion.iniciar_sesion(usuario, clave, self.bd)
+        self.assertFalse(autenticacion.sesion_activa())
+
+    def test_clave_no_se_guarda_en_texto_plano(self):
+        import sqlite3
+        guardado = sqlite3.connect(self.bd).execute("SELECT clave_hash FROM usuarios").fetchone()[0]
+        self.assertNotIn("Admin2026!", guardado)
+        self.assertTrue(guardado.startswith("pbkdf2$"))
+
+    def test_funciones_protegidas_sin_sesion(self):
+        with self.assertRaises(autenticacion.SesionNoValida):
+            archivos.guardar_texto(os.path.join(tempfile.mkdtemp(), "x.txt"))
+        with self.assertRaises(autenticacion.SesionNoValida):
+            exportar.exportar_excel()
+
+    def test_sesion_vence_por_inactividad(self):
+        autenticacion.iniciar_sesion("mesa", "Mesa2026!", self.bd)
+        autenticacion._sesion["ultima_actividad"] -= autenticacion.MINUTOS_INACTIVIDAD * 60 + 1
+        self.assertFalse(autenticacion.sesion_activa())
+
+    def test_crear_usuario_valida_datos(self):
+        with self.assertRaises(autenticacion.ErrorAutenticacion):
+            autenticacion.crear_usuario("ab", "clavelarga1", "OPERADOR", self.bd)
+        with self.assertRaises(autenticacion.ErrorAutenticacion):
+            autenticacion.crear_usuario("nuevo", "corta", "OPERADOR", self.bd)
+        with self.assertRaises(autenticacion.ErrorAutenticacion):
+            autenticacion.crear_usuario("admin", "clavelarga1", "OPERADOR", self.bd)   # duplicado
+
+
+class PruebasExportarExcel(unittest.TestCase):
+    """[NUEVO] Exportacion a .xlsx."""
+
+    def setUp(self):
+        self.carpeta = tempfile.mkdtemp()
+        cargar_ejemplos()
+
+    def test_sin_datos(self):
+        datos.limpiar_datos()
+        with self.assertRaises(exportar.ErrorExportacion):
+            exportar.exportar_excel(os.path.join(self.carpeta, "a.xlsx"))
+
+    def test_genera_tres_hojas_con_datos_correctos(self):
+        import openpyxl
+        ruta, total = exportar.exportar_excel(os.path.join(self.carpeta, "a.xlsx"))
+        self.assertEqual(total, 4)
+        libro = openpyxl.load_workbook(ruta)
+        self.assertEqual(libro.sheetnames, ["Expedientes", "Resumen", "Clientes"])
+        hoja = libro["Expedientes"]
+        self.assertEqual(hoja.max_row, 5)                       # encabezado + 4
+        self.assertEqual(hoja["A2"].value, "EXP-2026-0003")
+        self.assertEqual(hoja["C2"].value, "09876543")          # DNI conserva el cero
+        self.assertEqual(hoja["I3"].value, 13000.0)
+        self.assertEqual(hoja["B2"].number_format, "DD/MM/YYYY")
+        self.assertEqual(libro["Clientes"]["A2"].value, "09876543")
+        self.assertFalse(os.path.exists(os.path.join(self.carpeta, "a.tmp.xlsx")))
+
+    def test_texto_con_igual_no_es_formula(self):
+        import openpyxl
+        datos.lotes[0] = "=1+1"
+        ruta, _ = exportar.exportar_excel(os.path.join(self.carpeta, "b.xlsx"))
+        celda = openpyxl.load_workbook(ruta)["Expedientes"]["G2"]
+        self.assertEqual(celda.data_type, "s")
+
+    def test_agrega_extension_y_crea_carpeta(self):
+        ruta, _ = exportar.exportar_excel(os.path.join(self.carpeta, "sub", "reporte"))
+        self.assertTrue(ruta.endswith(".xlsx") and os.path.exists(ruta))
+
+    def test_error_de_ruta_invalida(self):
+        bloqueo = os.path.join(self.carpeta, "archivo.txt")
+        open(bloqueo, "w").close()
+        with self.assertRaises(exportar.ErrorExportacion):      # 'archivo.txt' no es carpeta
+            exportar.exportar_excel(os.path.join(bloqueo, "x.xlsx"))
 
 
 if __name__ == "__main__":

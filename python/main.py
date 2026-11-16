@@ -11,19 +11,21 @@
           Valderrama Rosado Aldahir Obved
  UPN - Trujillo, 2026
 
- Ejecutar con:  py main.py
+ Ejecutar con:  py main.py   (usuarios de prueba: admin / Admin2026!  y  mesa / Mesa2026!)
  Pruebas    :  py -m unittest discover -s pruebas -v
 ===============================================================================
 """
 
 import archivos
 import interfaz as ui
+import autenticacion as auth          # [NUEVO] login y control de sesion
 from datos import codigos
 
 
 def mostrar_menu():
     print("\n" + "=" * 62)
     print("   MESA DE PARTES DIGITAL - URBANISTIKA GRUPO INMOBILIARIO")
+    print("   Usuario: " + str(auth.usuario_actual()) + " (" + str(auth.rol_actual()) + ")")   # [NUEVO]
     print("=" * 62)
     print("   1) Registrar un expediente nuevo")
     print("   2) Listar todos los expedientes")
@@ -40,6 +42,8 @@ def mostrar_menu():
     print("  12) Restaurar desde el respaldo binario")
     print("  13) Ver un registro del respaldo  [acceso directo]")
     print("  14) Comparar archivo de texto vs binario")
+    print("  ---- Exportar ----------------------------------------")   # [NUEVO]
+    print("  15) Exportar a Excel (.xlsx)")                              # [NUEVO]
     print("   0) Guardar y salir")
     print("=" * 62)
 
@@ -60,31 +64,47 @@ OPCIONES = {
     "12": (ui.opcion_restaurar_binario, False),
     "13": (ui.opcion_ver_registro_binario, False),
     "14": (ui.opcion_comparar_archivos, False),
+    "15": (ui.opcion_exportar_excel, False),      # [NUEVO] no modifica los datos
 }
 
 
 def main():
-    """Carga el archivo de texto, repite el menu y guarda al salir."""
+    """[NUEVO] Login -> carga el archivo de texto -> menu -> guarda al salir."""
+    # [NUEVO] Nada se carga ni se muestra hasta validar las credenciales
+    if not auth.pantalla_login():
+        print("\n Acceso denegado. El programa se cerrara.\n")
+        return
+
     cargados, avisos = archivos.cargar_texto()
     print("\n Se cargaron " + str(cargados) + " expedientes desde " + archivos.ARCHIVO_TEXTO + ".")
     for aviso in avisos:
         print("   [!] Linea descartada -> " + aviso)
 
     while True:
+        # [NUEVO] Si la sesion vencio por inactividad, se pide login otra vez
+        if not auth.sesion_activa():
+            print("\n [!] Su sesion vencio por inactividad.")
+            if not auth.pantalla_login():
+                print("\n Acceso denegado. El programa se cerrara.\n")
+                return
         mostrar_menu()
         opcion = input(" Elija una opcion: ").strip()
         if opcion == "0":
             archivos.guardar_texto()
             print("\n [OK] " + str(len(codigos)) + " expedientes guardados en " +
                   archivos.ARCHIVO_TEXTO + ". Sistema cerrado.\n")
+            auth.cerrar_sesion()         # [NUEVO]
             break
         if opcion not in OPCIONES:
             print("\n [!] Opcion no valida. Elija un numero del menu.")
             continue
         funcion, modifica = OPCIONES[opcion]
-        funcion()
-        if modifica:
-            archivos.guardar_texto()
+        try:                                         # [NUEVO] vencimiento justo al ejecutar
+            funcion()
+            if modifica:
+                archivos.guardar_texto()
+        except auth.SesionNoValida:
+            print("\n [!] Su sesion vencio. Inicie sesion nuevamente y repita la opcion.")
 
 
 if __name__ == "__main__":

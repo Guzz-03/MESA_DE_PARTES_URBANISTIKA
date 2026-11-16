@@ -19,6 +19,7 @@ import os
 import struct
 import time
 
+from autenticacion import requiere_sesion          # [NUEVO] control de sesion
 from datos import ARREGLOS, montos, limpiar_datos, agregar_expediente
 from validaciones import validar_dni, validar_fecha
 
@@ -109,6 +110,7 @@ def validar_linea(linea):
     return partes, "OK"
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def guardar_texto(ruta=ARCHIVO_TEXTO):
     """Escribe todos los expedientes. Primero en un .tmp y luego lo reemplaza,
     para no perder el archivo anterior si algo falla a mitad de la escritura."""
@@ -120,6 +122,7 @@ def guardar_texto(ruta=ARCHIVO_TEXTO):
     return len(ARREGLOS[0])
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def cargar_texto(ruta=ARCHIVO_TEXTO):
     """Lee el archivo de texto y llena los arreglos.
 
@@ -150,6 +153,7 @@ def cargar_texto(ruta=ARCHIVO_TEXTO):
 # ARCHIVO BINARIO (respaldo)
 # -----------------------------------------------------------------------------
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def guardar_binario(ruta=ARCHIVO_BINARIO):
     """Escribe un registro de longitud fija por expediente."""
     with open(ruta, "wb") as archivo:
@@ -158,6 +162,7 @@ def guardar_binario(ruta=ARCHIVO_BINARIO):
     return len(ARREGLOS[0])
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def cargar_binario(ruta=ARCHIVO_BINARIO):
     """Lee todos los registros del respaldo y llena los arreglos."""
     limpiar_datos()
@@ -179,6 +184,7 @@ def contar_registros_binario(ruta=ARCHIVO_BINARIO):
     return os.path.getsize(ruta) // TAMANIO_REGISTRO
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def leer_registro_binario(n, ruta=ARCHIVO_BINARIO):
     """ACCESO DIRECTO: salta al byte n * TAMANIO_REGISTRO y lee solo ese registro.
     Devuelve la lista de campos o None si n esta fuera de rango."""
@@ -189,6 +195,7 @@ def leer_registro_binario(n, ruta=ARCHIVO_BINARIO):
         return desempaquetar(archivo.read(TAMANIO_REGISTRO))
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def leer_linea_texto(n, ruta=ARCHIVO_TEXTO):
     """ACCESO SECUENCIAL: para llegar a la linea n hay que leer las anteriores."""
     with open(ruta, "r", encoding="utf-8") as archivo:

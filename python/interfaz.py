@@ -13,6 +13,8 @@ import tempfile
 from datetime import datetime
 
 import archivos
+from autenticacion import requiere_sesion          # [NUEVO] control de sesion
+from exportar import exportar_excel, ErrorExportacion   # [NUEVO] exportacion a Excel
 from cadenas import (solo_digitos, formato_nombre, limpiar_monto, formato_soles,
                      descomponer_codigo, descomponer_fecha, descomponer_lote)
 from validaciones import (validar_dni, validar_telefono, validar_nombre,
@@ -145,6 +147,7 @@ def mostrar_matriz(matriz):
     print(linea + str(len(codigos)).rjust(8))
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_registrar():
     """Opcion 1: registro validado de un expediente nuevo."""
     print("\n" + "=" * 62)
@@ -210,6 +213,7 @@ def opcion_registrar():
     print("\n [OK] Expediente registrado con el codigo: " + codigo)
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_listar():
     """Opcion 2: todos los expedientes en el orden en que se registraron."""
     if not hay_expedientes():
@@ -221,6 +225,7 @@ def opcion_listar():
     print(" Pendientes     : " + str(contar_pendientes()) + " de " + str(len(codigos)))
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_buscar():
     """Opcion 3: busqueda lineal por coincidencia parcial."""
     texto = input("\n Escriba nombre, DNI, lote, proyecto o codigo: ").strip()
@@ -237,6 +242,7 @@ def opcion_buscar():
     print(" [Metrica] Busqueda lineal: " + str(comparaciones) + " comparaciones.")
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_buscar_binaria():
     """Opcion 4: ordena por codigo y aplica busqueda binaria."""
     if not hay_expedientes():
@@ -255,6 +261,7 @@ def opcion_buscar_binaria():
     print(" [Metrica] Busqueda binaria   : " + str(comp_busq) + " comparaciones.")
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_ordenar():
     """Opcion 5: criterio, sentido y algoritmo de ordenamiento."""
     if not hay_expedientes():
@@ -278,6 +285,7 @@ def opcion_ordenar():
     print(" [Metrica] " + detalle)
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_cambiar_estado():
     """Opcion 6: se cambia el dato en la posicion i del arreglo 'estados'."""
     if not hay_expedientes():
@@ -298,6 +306,7 @@ def opcion_cambiar_estado():
     print("\n [OK] El expediente " + codigos[i] + " ahora esta en estado: " + nuevo)
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_reporte():
     """Opcion 7: matriz proyecto x estado + indicadores de monto."""
     if not hay_expedientes():
@@ -314,6 +323,7 @@ def opcion_reporte():
     print(" Expedientes pendientes : " + str(contar_pendientes()))
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_comparar():
     """Opcion 8: mide las dos alternativas de busqueda sobre el mismo dato."""
     if not hay_expedientes():
@@ -349,6 +359,7 @@ def opcion_comparar():
     print("=" * 62)
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_resumen_clientes():
     """Opcion 9: cuantos tramites y cuanto pago cada cliente."""
     if not hay_expedientes():
@@ -369,6 +380,7 @@ def opcion_resumen_clientes():
     print(" Clientes distintos: " + str(len(dnis_cliente)))
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_datos_prueba():
     """Opcion 10: carga expedientes ficticios para demostrar el sistema."""
     if len(codigos) > 0:
@@ -395,6 +407,7 @@ def opcion_datos_prueba():
 # OPCIONES DE ARCHIVOS (TEMAS 5 A 7)
 # =============================================================================
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_respaldo_binario():
     """Opcion 11: copia de seguridad en el archivo binario."""
     if not hay_expedientes():
@@ -404,6 +417,7 @@ def opcion_respaldo_binario():
           " registros de " + str(archivos.TAMANIO_REGISTRO) + " bytes).")
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_restaurar_binario():
     """Opcion 12: reemplaza los datos actuales por los del respaldo."""
     if archivos.contar_registros_binario() == 0:
@@ -417,6 +431,7 @@ def opcion_restaurar_binario():
     print("\n [OK] Se restauraron " + str(total) + " expedientes desde el respaldo.")
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_ver_registro_binario():
     """Opcion 13: acceso directo a un registro del respaldo por su numero."""
     total = archivos.contar_registros_binario()
@@ -453,6 +468,7 @@ def generar_expedientes_prueba(cantidad):
             "MESA DE PARTES")
 
 
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
 def opcion_comparar_archivos():
     """Opcion 14: compara texto vs binario con datos ficticios.
     Los expedientes reales se guardan aparte y se recuperan al final."""
@@ -484,3 +500,23 @@ def opcion_comparar_archivos():
     print(" El texto se lee y corrige con el Bloc de notas; el binario")
     print(" llega a cualquier registro de un salto (seek) sin leer los demas.")
     print("=" * 62)
+
+
+# =============================================================================
+# [NUEVO] EXPORTACION A EXCEL
+# =============================================================================
+
+@requiere_sesion   # [NUEVO] exige sesion valida antes de ejecutar
+def opcion_exportar_excel():
+    """Opcion 15: exporta expedientes, resumen y clientes a un archivo .xlsx."""
+    if not hay_expedientes():
+        return
+    print("\n Se generara un Excel con 3 hojas: Expedientes, Resumen y Clientes.")
+    nombre = input(" Nombre del archivo [Enter = automatico en 'exportaciones/']: ").strip()
+    try:
+        ruta, total = exportar_excel(nombre or None)
+    except ErrorExportacion as error:
+        print("\n [!] No se pudo exportar: " + str(error))
+        return
+    print("\n [OK] Excel creado con " + str(total) + " expedientes:")
+    print("      " + os.path.abspath(ruta))
